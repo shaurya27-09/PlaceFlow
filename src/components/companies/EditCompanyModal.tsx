@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { supabase } from '../../lib/supabase';
 import { X, Edit3, AlertCircle, Loader2 } from 'lucide-react';
 import { Company, CompanyTier } from '../../types';
 

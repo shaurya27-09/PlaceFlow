@@ -743,6 +743,28 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Student Actions
   const addStudent = async (studentData: Omit<Student, 'id' | 'offers'>) => {
+    if (isSupabaseConfigured) {
+      const res = await addStudentToSupabase({
+        ...studentData,
+        id: generateUUID(),
+        offers: []
+      });
+      if (res.error) {
+        addToast('Database Error', `Failed to create student: ${res.error}`, 'error');
+        throw new Error(res.error);
+      }
+      if (res.data) {
+        const savedStudent: Student = {
+          ...studentData,
+          id: String(res.data.id),
+          offers: []
+        };
+        setStudents(prev => [savedStudent, ...prev]);
+        addToast('Student Added', `${savedStudent.name} (${savedStudent.enrollmentNumber}) added successfully.`, 'success');
+        return;
+      }
+    }
+
     const studentId = generateUUID();
     const newStudent: Student = {
       ...studentData,
@@ -750,19 +772,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       offers: []
     };
     setStudents(prev => [newStudent, ...prev]);
-    if (isSupabaseConfigured) {
-      const res = await addStudentToSupabase(newStudent);
-      if (res.data?.id && res.data.id !== studentId) {
-        setStudents(prev => prev.map(s => s.id === studentId ? { ...s, id: res.data!.id } : s));
-      }
-      if (res.error) {
-        addToast('Supabase Warning', `Saved locally, Supabase message: ${res.error}`, 'warning');
-      }
-    }
     addToast('Student Added', `${newStudent.name} (${newStudent.enrollmentNumber}) added successfully.`, 'success');
   };
 
   const updateStudent = async (id: string, partial: Partial<Student>) => {
+    if (isSupabaseConfigured) {
+      const res = await updateStudentInSupabase(id, partial);
+      if (!res.success && res.error) {
+        addToast('Database Error', `Failed to update student: ${res.error}`, 'error');
+        throw new Error(res.error);
+      }
+    }
+
     setStudents(prev => {
       const updated = prev.map(s => {
         if (s.id === id) {
@@ -777,26 +798,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setSelectedStudentForDetail(prev => prev ? { ...prev, ...partial } : null);
     }
 
-    if (isSupabaseConfigured) {
-      const res = await updateStudentInSupabase(id, partial);
-      if (!res.success && res.error) {
-        addToast('Supabase Warning', `Saved locally, Supabase message: ${res.error}`, 'warning');
-      }
-    }
     addToast('Student Updated', 'Student details updated successfully.', 'success');
   };
 
   const deleteStudent = async (id: string) => {
     const targetStudent = students.find(s => s.id === id);
-    setStudents(prev => prev.filter(s => s.id !== id));
-    if (selectedStudentForDetail?.id === id) {
-      setSelectedStudentForDetail(null);
-    }
     if (isSupabaseConfigured) {
       const res = await deleteStudentFromSupabase(id);
       if (!res.success && res.error) {
-        addToast('Supabase Warning', `Removed locally, Supabase message: ${res.error}`, 'warning');
+        addToast('Database Error', `Failed to delete student: ${res.error}`, 'error');
+        throw new Error(res.error);
       }
+    }
+
+    setStudents(prev => prev.filter(s => s.id !== id));
+    if (selectedStudentForDetail?.id === id) {
+      setSelectedStudentForDetail(null);
     }
     addToast('Student Deleted', `${targetStudent ? targetStudent.name : 'Student'} has been removed.`, 'info');
   };
@@ -934,21 +951,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const { eligible } = getEligibleStudentsForDrive(mockDrive);
     mockDrive.eligibleCount = eligible.length;
 
-    setDrives(prev => [mockDrive, ...prev]);
     if (isSupabaseConfigured) {
       const res = await addDriveToSupabase(mockDrive);
-      if (res.data?.id && res.data.id !== driveId) {
-        setDrives(prev => prev.map(d => d.id === driveId ? { ...d, id: res.data!.id } : d));
-      }
       if (res.error) {
-        addToast('Supabase Warning', `Saved locally, Supabase message: ${res.error}`, 'warning');
+        addToast('Database Error', `Failed to create placement drive: ${res.error}`, 'error');
+        throw new Error(res.error);
+      }
+      if (res.data?.id) {
+        mockDrive.id = String(res.data.id);
       }
     }
+
+    setDrives(prev => [mockDrive, ...prev]);
     addToast('Drive Created', `Placement drive for ${mockDrive.companyName} (${mockDrive.role}) published.`, 'success');
     return mockDrive;
   };
 
   const updateDrive = async (id: string, partial: Partial<PlacementDrive>) => {
+    if (isSupabaseConfigured) {
+      const res = await updateDriveInSupabase(id, partial);
+      if (!res.success && res.error) {
+        addToast('Database Error', `Failed to update placement drive: ${res.error}`, 'error');
+        throw new Error(res.error);
+      }
+    }
+
     setDrives(prev => {
       const updated = prev.map(d => {
         if (d.id === id) {
@@ -960,26 +987,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return updated;
     });
 
-    if (isSupabaseConfigured) {
-      const res = await updateDriveInSupabase(id, partial);
-      if (!res.success && res.error) {
-        addToast('Supabase Warning', `Saved locally, Supabase message: ${res.error}`, 'warning');
-      }
-    }
     addToast('Drive Updated', 'Placement drive details updated successfully.', 'success');
   };
 
   const deleteDrive = async (id: string) => {
     const targetDrive = drives.find(d => d.id === id);
-    setDrives(prev => prev.filter(d => d.id !== id));
-    if (selectedDriveForEligibility?.id === id) {
-      setSelectedDriveForEligibility(null);
-    }
     if (isSupabaseConfigured) {
       const res = await deleteDriveFromSupabase(id);
       if (!res.success && res.error) {
-        addToast('Supabase Warning', `Removed locally, Supabase message: ${res.error}`, 'warning');
+        addToast('Database Error', `Failed to delete placement drive: ${res.error}`, 'error');
+        throw new Error(res.error);
       }
+    }
+
+    setDrives(prev => prev.filter(d => d.id !== id));
+    if (selectedDriveForEligibility?.id === id) {
+      setSelectedDriveForEligibility(null);
     }
     addToast('Drive Removed', `Drive for ${targetDrive ? targetDrive.companyName : 'Company'} removed.`, 'info');
   };

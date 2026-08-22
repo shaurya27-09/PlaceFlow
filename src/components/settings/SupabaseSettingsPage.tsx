@@ -139,31 +139,18 @@ export const SupabaseSettingsPage: React.FC = () => {
   };
 
   const sqlSchemaSnippet = `-- PlaceFlow TPC PostgreSQL Database Schema for Supabase
--- Run this in your Supabase SQL Editor (https://supabase.com/dashboard)
-
+-- Offers Table for Eligibility Engine & Placement Records (Live Schema)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Offers Table for Eligibility Engine & Placement Records
 CREATE TABLE IF NOT EXISTS public.offers (
-    id TEXT PRIMARY KEY,
-    student_id TEXT NOT NULL,
-    student_name TEXT NOT NULL,
-    student_enrollment TEXT NOT NULL,
-    student_branch TEXT NOT NULL,
-    company_id TEXT,
-    company_name TEXT NOT NULL,
-    company_logo TEXT,
-    role TEXT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    drive_id UUID NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
     package_lpa NUMERIC(5, 2) NOT NULL,
-    offer_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    status TEXT NOT NULL DEFAULT 'Pending',
-    policy_check_passed BOOLEAN NOT NULL DEFAULT true,
-    policy_violation_reason TEXT,
-    tier TEXT NOT NULL DEFAULT 'Core',
-    deadline_date DATE NOT NULL,
-    bond_years INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    status TEXT NOT NULL,
+    offer_date DATE,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Enable Row Level Security (RLS) & Grant Access

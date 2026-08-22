@@ -1050,33 +1050,35 @@ export async function addCompanyToSupabase(company: Partial<Company> & Partial<D
     return { error: 'Supabase is not configured' };
   }
   const compName = company.company_name || company.name || 'Unnamed Company';
-  const contact = company.contactPerson || company.contact_person || company.contact_name || null;
+  const contact = company.contactPerson || (company as any).contact_person || (company as any).contact_name || null;
 
-  const row: DbCompanyRow = {
-    id: (company.id && isValidUUID(company.id)) ? company.id : generateUUID(),
+  // STRICT authoritative columns payload ONLY:
+  // company_name, industry, website, contact_name, contact_email, contact_phone, status, contact_person
+  // (Do not manually send id or created_at when Supabase/database generates them)
+  const payload = {
     company_name: compName,
     industry: company.industry || 'Technology',
     website: company.website || null,
     contact_name: contact,
-    contact_person: contact,
-    contact_email: company.contactEmail || company.contact_email || null,
-    contact_phone: company.contactPhone || company.contact_phone || null,
-    status: company.status || 'Active'
+    contact_email: company.contactEmail || (company as any).contact_email || null,
+    contact_phone: company.contactPhone || (company as any).contact_phone || null,
+    status: company.status || 'Active',
+    contact_person: contact
   };
 
   try {
-    const { data, error } = await supabase.from('companies').insert([row]).select();
+    const { data, error } = await supabase.from('companies').insert([payload]).select();
     
     if (error) {
       console.error('[Supabase Error]', {
         table: 'companies',
         operation: 'insert',
-        payloadKeys: Object.keys(row),
+        payloadKeys: Object.keys(payload),
         error
       });
       return { error: error.message };
     }
-    return { data: data?.[0] || row };
+    return { data: data?.[0] };
   } catch (err: any) {
     console.error('[Supabase Exception]', {
       table: 'companies',
@@ -1093,20 +1095,21 @@ export async function updateCompanyInSupabase(id: string, partial: Partial<Compa
   }
   
   const compName = partial.company_name || partial.name;
-  const payload: Partial<DbCompanyRow> = {};
+  // STRICT authoritative columns payload ONLY:
+  const payload: Record<string, any> = {};
   if (compName !== undefined) payload.company_name = compName;
   if (partial.industry !== undefined) payload.industry = partial.industry;
-  if (partial.website !== undefined) payload.website = partial.website;
-  if (partial.contactPerson !== undefined || partial.contact_person !== undefined || partial.contact_name !== undefined) {
-    const contact = partial.contact_person || partial.contactPerson || partial.contact_name || null;
-    payload.contact_person = contact;
+  if (partial.website !== undefined) payload.website = partial.website || null;
+  if (partial.contactPerson !== undefined || (partial as any).contact_person !== undefined || (partial as any).contact_name !== undefined) {
+    const contact = (partial as any).contact_person || partial.contactPerson || (partial as any).contact_name || null;
     payload.contact_name = contact;
+    payload.contact_person = contact;
   }
-  if (partial.contactEmail !== undefined || partial.contact_email !== undefined) {
-    payload.contact_email = partial.contact_email || partial.contactEmail || null;
+  if (partial.contactEmail !== undefined || (partial as any).contact_email !== undefined) {
+    payload.contact_email = (partial as any).contact_email || partial.contactEmail || null;
   }
-  if (partial.contactPhone !== undefined || partial.contact_phone !== undefined) {
-    payload.contact_phone = partial.contact_phone || partial.contactPhone || null;
+  if (partial.contactPhone !== undefined || (partial as any).contact_phone !== undefined) {
+    payload.contact_phone = (partial as any).contact_phone || partial.contactPhone || null;
   }
   if (partial.status !== undefined) payload.status = partial.status;
 
@@ -1168,12 +1171,13 @@ export async function deleteCompanyFromSupabase(id: string): Promise<{ success: 
   }
 }
 
-export async function upsertCompanyToSupabase(company: Company) {
-  if (!isSupabaseConfigured || !supabase) return;
+export async function upsertCompanyToSupabase(company: Company): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) return { success: true };
   const compName = company.company_name || company.name || 'Company';
   const contact = company.contactPerson || (company as any).contact_person || (company as any).contact_name || null;
 
-  const payload: DbCompanyRow = {
+  // STRICT authoritative columns payload ONLY:
+  const payload = {
     id: (company.id && isValidUUID(company.id)) ? company.id : generateUUID(),
     company_name: compName,
     industry: company.industry || 'Technology',
@@ -1193,13 +1197,16 @@ export async function upsertCompanyToSupabase(company: Company) {
         operation: 'upsert',
         error
       });
+      return { success: false, error: error.message };
     }
-  } catch (err) {
+    return { success: true };
+  } catch (err: any) {
     console.error('[Supabase Exception]', {
       table: 'companies',
       operation: 'upsert',
       error: err
     });
+    return { success: false, error: err?.message || 'Failed to upsert company in Supabase' };
   }
 }
 
