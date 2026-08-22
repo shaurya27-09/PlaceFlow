@@ -119,6 +119,7 @@ export const AiAssistantPage: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          question: currentQuestion,
           message: currentQuestion,
           studentId: currentStudent?.id,
           driveId: currentDrive?.id,
@@ -140,7 +141,7 @@ export const AiAssistantPage: React.FC = () => {
         const aiMsg: Message = {
           id: `ai-${Date.now()}`,
           sender: 'ai',
-          text: data?.response || 'PlaceFlow AI is temporarily unavailable. Please try again.',
+          text: data?.response || data?.text || 'PlaceFlow AI is temporarily unavailable. Please try again.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           provider: 'placeflow-service'
         };
@@ -148,7 +149,7 @@ export const AiAssistantPage: React.FC = () => {
         return;
       }
 
-      const responseText = data?.response || 'PlaceFlow AI is temporarily unavailable. Please try again.';
+      const responseText = data?.response || data?.text || 'PlaceFlow AI is temporarily unavailable. Please try again.';
 
       const aiMsg: Message = {
         id: `ai-${Date.now()}`,

@@ -1,6 +1,3 @@
-import express from 'express';
-import path from 'path';
-import dns from 'dns';
 import { GoogleGenAI } from '@google/genai';
 import { createClient } from '@supabase/supabase-js';
 
@@ -32,383 +29,8 @@ const supabaseServerClient = (supabaseUrl && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
-  app.use(express.json({ limit: '10mb' }));
-
-  // Health check API
-  app.get('/api/health', (req, res) => {
-    res.json({
-      status: 'ok',
-      geminiConfigured: Boolean(process.env.GEMINI_API_KEY),
-      supabaseConfigured: Boolean(supabaseServerClient)
-    });
-  });
-
-  // Supabase Network & DNS Reachability Diagnostic API
-  app.post('/api/supabase/diagnose', async (req, res) => {
-    try {
-      const rawUrl = (req.body?.url || supabaseUrl || '').trim();
-      const rawKey = (req.body?.anonKey || supabaseAnonKey || '').trim();
-
-      if (!rawUrl || !rawKey) {
-        return res.json({
-          success: false,
-          reachable: false,
-          errorType: 'MISSING_CREDENTIALS',
-          message: 'Supabase URL or Anon Key is missing in request.'
-        });
-      }
-
-      // Normalize URL
-      let cleanUrl = rawUrl.replace(/\/+$/, '').replace(/\/rest\/v1\/?$/, '');
-      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-        cleanUrl = `https://${cleanUrl}`;
-      }
-
-      let parsed: URL;
-      try {
-        parsed = new URL(cleanUrl);
-      } catch (e: any) {
-        return res.json({
-          success: false,
-          reachable: false,
-          errorType: 'INVALID_URL_FORMAT',
-          message: `Invalid URL format: ${rawUrl}`
-        });
-      }
-
-      const hostname = parsed.hostname;
-
-      // 1. DNS Resolution Check
-      let resolvedIp = '';
-      try {
-        const lookupResult = await dns.promises.lookup(hostname);
-        resolvedIp = lookupResult.address;
-      } catch (dnsErr: any) {
-        const isNotFound = dnsErr?.code === 'ENOTFOUND' || dnsErr?.code === 'EAI_AGAIN';
-        return res.json({
-          success: false,
-          reachable: false,
-          dnsResolved: false,
-          hostname,
-          errorType: isNotFound ? 'DNS_NOT_FOUND' : 'DNS_ERROR',
-          message: `Could not resolve host '${hostname}'.`,
-          details: dnsErr?.message || 'DNS lookup failed',
-          hint: hostname.includes('supabase.co')
-            ? 'This Supabase project is either PAUSED due to inactivity, deleted, or the project reference is mistyped. Please visit https://supabase.com/dashboard, find your project, and click "Restore project" if paused, or copy the exact Project URL from Project Settings > API.'
-            : 'Please verify the hostname and network configuration.'
-        });
-      }
-
-      // 2. HTTP Ping to Supabase REST endpoint
-      const restEndpoint = `${cleanUrl}/rest/v1/`;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-        const resp = await fetch(restEndpoint, {
-          method: 'GET',
-          headers: {
-            apikey: rawKey,
-            Authorization: `Bearer ${rawKey}`,
-            'User-Agent': 'PlaceFlow-Diagnostic/1.0'
-          },
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (resp.status === 401 || resp.status === 403) {
-          return res.json({
-            success: false,
-            reachable: true,
-            dnsResolved: true,
-            resolvedIp,
-            httpStatus: resp.status,
-            errorType: 'AUTH_FAILED',
-            message: `Supabase host responded, but API key was rejected (HTTP ${resp.status} Unauthorized).`,
-            hint: 'Please verify that your Supabase anon/public key is copied accurately from Project Settings > API.'
-          });
-        }
-
-        return res.json({
-          success: true,
-          reachable: true,
-          dnsResolved: true,
-          resolvedIp,
-          httpStatus: resp.status,
-          message: `Successfully connected to Supabase endpoint (${hostname}).`
-        });
-      } catch (httpErr: any) {
-        return res.json({
-          success: false,
-          reachable: false,
-          dnsResolved: true,
-          resolvedIp,
-          errorType: 'HTTP_CONNECTION_FAILED',
-          message: `DNS resolved to ${resolvedIp}, but HTTP connection failed: ${httpErr?.message || 'Network error'}`,
-          details: httpErr?.message
-        });
-      }
-    } catch (err: any) {
-      return res.status(500).json({
-        success: false,
-        error: err?.message || 'Internal error diagnosing Supabase reachability'
-      });
-    }
-  });
-
-  // Supabase Resilient Server-Side Proxy Endpoint
-  app.post('/api/supabase/proxy', async (req, res) => {
-    try {
-      const { targetUrl: rawTargetUrl, method = 'GET', headers = {}, body } = req.body;
-      if (!rawTargetUrl) {
-        return res.status(400).json({ error: 'targetUrl is required' });
-      }
-
-      let targetUrl = String(rawTargetUrl).trim();
-      if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
-        targetUrl = `${supabaseUrl.replace(/\/+$/, '')}${targetUrl}`;
-      }
-
-      const forwardHeaders: Record<string, string> = {};
-      // Filter safe headers
-      for (const [k, v] of Object.entries(headers)) {
-        const lower = k.toLowerCase();
-        if (['apikey', 'authorization', 'content-type', 'prefer', 'range', 'accept'].includes(lower)) {
-          forwardHeaders[k] = String(v);
-        }
-      }
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      try {
-        const upstreamResp = await fetch(targetUrl, {
-          method,
-          headers: forwardHeaders,
-          body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        const contentType = upstreamResp.headers.get('content-type') || '';
-        res.status(upstreamResp.status);
-
-        if (contentType.includes('application/json')) {
-          const json = await upstreamResp.json();
-          return res.json(json);
-        } else {
-          const text = await upstreamResp.text();
-          // If the upstream returned HTML error page (e.g. 502/503 from paused Supabase project),
-          // format it as a valid JSON error so client JSON parsers do not throw unexpected token '<'
-          return res.status(upstreamResp.status).json({
-            error: {
-              message: `Upstream response (HTTP ${upstreamResp.status}): ${text.slice(0, 200)}`,
-              code: 'UPSTREAM_HTML_RESPONSE',
-              status: upstreamResp.status
-            }
-          });
-        }
-      } catch (fetchErr: any) {
-        clearTimeout(timeoutId);
-        const isDnsErr = fetchErr?.cause?.code === 'ENOTFOUND' || fetchErr?.message?.includes('ENOTFOUND');
-        return res.status(502).json({
-          error: {
-            message: isDnsErr
-              ? `Cannot resolve host for ${targetUrl}. The Supabase project is likely PAUSED, deleted, or mistyped.`
-              : (fetchErr?.message || 'Upstream network fetch failure'),
-            code: isDnsErr ? 'DNS_LOOKUP_FAILED' : 'FETCH_ERROR',
-            details: fetchErr?.message
-          }
-        });
-      }
-    } catch (err: any) {
-      return res.status(500).json({ error: { message: err?.message || 'Internal proxy error' } });
-    }
-  });
-
-  // Gemini Decision Explanation Chat API
-  app.post('/api/gemini/chat', async (req, res) => {
-    console.log("AI route called");
-    try {
-      const {
-        question: bodyQuestion,
-        message,
-        history = [],
-        studentId,
-        driveId,
-        clientData
-      } = req.body || {};
-
-      const currentQuestion = (bodyQuestion || message || '').trim();
-      console.log("Question received:", currentQuestion);
-
-      if (!currentQuestion) {
-        return res.status(400).json({ error: 'Query message is required.' });
-      }
-
-      // Fetch or use placement database records
-      let students = clientData?.students || [];
-      let drives = clientData?.drives || [];
-      let applications = clientData?.applications || [];
-      let offers = clientData?.offers || [];
-      let companies = clientData?.companies || [];
-      let offerPolicy = clientData?.offerPolicy || null;
-
-      // If server Supabase client is connected and client didn't supply records, query Supabase with safety timeout
-      if (supabaseServerClient && (!students.length || !drives.length)) {
-        try {
-          const fetchPromise = Promise.all([
-            supabaseServerClient.from('students').select('*'),
-            supabaseServerClient.from('placement_drives').select('*'),
-            supabaseServerClient.from('applications').select('*'),
-            supabaseServerClient.from('offers').select('*'),
-            supabaseServerClient.from('companies').select('*')
-          ]);
-          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
-          const dbResults = await Promise.race([fetchPromise, timeoutPromise]);
-          if (dbResults && Array.isArray(dbResults)) {
-            const [sRes, dRes, aRes, oRes, cRes] = dbResults;
-            if (sRes.data && sRes.data.length > 0) students = sRes.data;
-            if (dRes.data && dRes.data.length > 0) drives = dRes.data;
-            if (aRes.data && aRes.data.length > 0) applications = aRes.data;
-            if (oRes.data && oRes.data.length > 0) offers = oRes.data;
-            if (cRes.data && cRes.data.length > 0) companies = cRes.data;
-          }
-        } catch (dbErr) {
-          console.warn('[SERVER] Supabase query notice:', dbErr);
-        }
-      }
-
-      // Deterministic Query-Routing Layer
-      const { questionType, relevantContext } = determineQueryRouteAndContext(currentQuestion, {
-        students,
-        drives,
-        applications,
-        offers,
-        companies,
-        offerPolicy,
-        studentId,
-        driveId
-      });
-
-      // Required Debug Console Logs
-      console.log('AI QUESTION:', currentQuestion);
-      console.log('QUESTION TYPE:', questionType);
-      console.log('AI CONTEXT:', relevantContext);
-
-      const systemInstruction = `You are PlaceFlow AI, an assistant for a college Training & Placement Cell.
-Answer the user's question using ONLY the supplied placement data.
-Never invent placement statistics.
-Never change eligibility decisions.
-Never change offer-policy decisions.
-If the required information is unavailable, say that the information is not available.`;
-
-      const promptContent = `USER QUESTION:
-${currentQuestion}
-
-PLACEMENT DATA:
-${JSON.stringify(relevantContext, null, 2)}`;
-
-      const ai = getGeminiClient();
-      if (!ai) {
-        const keyErr = new Error('GEMINI_API_KEY environment variable is not configured.');
-        console.error("Gemini route error:", keyErr);
-        return res.status(503).json({
-          error: 'PlaceFlow AI is temporarily unavailable. Please try again.',
-          response: 'PlaceFlow AI is temporarily unavailable. Please try again.',
-          text: 'PlaceFlow AI is temporarily unavailable. Please try again.'
-        });
-      }
-
-      console.log("Gemini request starting");
-
-      const CANDIDATE_MODELS = [
-        'gemini-3.6-flash',
-        'gemini-3.7-flash',
-        'gemini-3.5-flash',
-        'gemini-flash-latest'
-      ];
-
-      let responseText = '';
-      let usedProvider = 'gemini-3.6-flash';
-
-      for (const modelName of CANDIDATE_MODELS) {
-        try {
-          const response = await ai.models.generateContent({
-            model: modelName,
-            contents: promptContent,
-            config: {
-              systemInstruction,
-              temperature: 0.2
-            }
-          });
-          if (response?.text) {
-            responseText = response.text;
-            usedProvider = modelName;
-            console.log("Gemini request completed");
-            console.log(`[SERVER] Gemini response successfully received via ${modelName}`);
-            break;
-          }
-        } catch (geminiError: any) {
-          console.log(`[SERVER] Model ${modelName} transient load notice, trying next candidate model...`);
-        }
-      }
-
-      if (!responseText.trim()) {
-        const emptyErr = new Error('All Gemini candidate models failed to return a response.');
-        console.error("Gemini route error:", emptyErr);
-        return res.status(503).json({
-          error: 'PlaceFlow AI is temporarily unavailable. Please try again.',
-          response: 'PlaceFlow AI is temporarily unavailable. Please try again.',
-          text: 'PlaceFlow AI is temporarily unavailable. Please try again.'
-        });
-      }
-
-      return res.json({
-        response: responseText.trim(),
-        text: responseText.trim(),
-        provider: usedProvider,
-        questionType,
-        status: 'ok'
-      });
-    } catch (err: any) {
-      console.error("Gemini route error:", err);
-      return res.status(503).json({
-        error: 'PlaceFlow AI is temporarily unavailable. Please try again.',
-        response: 'PlaceFlow AI is temporarily unavailable. Please try again.',
-        text: 'PlaceFlow AI is temporarily unavailable. Please try again.'
-      });
-    }
-  });
-
-  // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
-    const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa'
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
-  }
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`PlaceFlow Full-Stack Server running on port ${PORT}`);
-  });
-}
-
 /**
  * Deterministic Query-Routing Layer
- * Classifies the current placement query and extracts targeted structured Supabase data
  */
 function determineQueryRouteAndContext(
   currentQuestion: string,
@@ -426,17 +48,14 @@ function determineQueryRouteAndContext(
   const q = (currentQuestion || '').toLowerCase();
   const { students = [], drives = [], applications = [], offers = [], companies = [], offerPolicy = null, studentId, driveId } = data;
 
-  // Active student and drive context
   const selectedStudent = students.find((s: any) => s.id === studentId);
   const selectedDrive = drives.find((d: any) => d.id === driveId);
 
-  // Helper to test if a student is placed
   const isPlaced = (s: any) => {
     const status = (s.placement_status || s.placementStatus || '').toLowerCase();
     return status === 'placed' || status === 'dream placed' || (Array.isArray(s.offers) && s.offers.length > 0);
   };
 
-  // Helper to extract student offer company & package
   const getStudentOfferInfo = (s: any) => {
     if (Array.isArray(s.offers) && s.offers.length > 0) {
       const off = s.offers[0];
@@ -457,7 +76,6 @@ function determineQueryRouteAndContext(
     return null;
   };
 
-  // 1. UNPLACED STUDENTS QUESTION
   if (
     q.includes('unplaced') ||
     q.includes('not placed') ||
@@ -487,7 +105,6 @@ function determineQueryRouteAndContext(
     };
   }
 
-  // 2. PLACED STUDENTS QUESTION
   if (
     (q.includes('placed') && !q.includes('rate') && !q.includes('percentage') && !q.includes('branch')) ||
     q.includes('how many students are placed') ||
@@ -520,7 +137,6 @@ function determineQueryRouteAndContext(
     };
   }
 
-  // 3. HIGHEST PACKAGE / TOP PAYING COMPANY
   if (
     q.includes('highest package') ||
     q.includes('highest salary') ||
@@ -575,7 +191,6 @@ function determineQueryRouteAndContext(
     };
   }
 
-  // 4. BRANCH-WISE STATISTICS / PLACEMENT RATE BY BRANCH
   if (
     q.includes('branch') ||
     q.includes('placement rate') ||
@@ -631,13 +246,11 @@ function determineQueryRouteAndContext(
     };
   }
 
-  // 5. DRIVE ELIGIBILITY COUNT (e.g. "How many students are eligible for Microsoft?")
   if (
     (q.includes('eligible') || q.includes('eligibility')) &&
     !q.includes('why') &&
     (q.includes('how many') || q.includes('count') || q.includes('who') || q.includes('for'))
   ) {
-    // Find target drive mentioned in query or use selected drive
     const matchedDrive = drives.find(d => {
       const name = (d.company_name || d.companyName || '').toLowerCase();
       return name && q.includes(name);
@@ -707,7 +320,6 @@ function determineQueryRouteAndContext(
     }
   }
 
-  // 6. STUDENT INELIGIBILITY / ELIGIBILITY / OFFER-POLICY EXPLANATION (e.g. "Why is Rahul not eligible for Microsoft?", "Why am I not eligible?")
   if (
     q.includes('why') ||
     q.includes('ineligible') ||
@@ -717,7 +329,6 @@ function determineQueryRouteAndContext(
     q.includes('policy') ||
     q.includes('criteria mismatch')
   ) {
-    // Find target student from query or context
     const targetStudent = students.find(s => {
       const name = (s.name || '').toLowerCase();
       const first = name.split(' ')[0];
@@ -725,7 +336,6 @@ function determineQueryRouteAndContext(
       return (name && q.includes(name)) || (first && first.length > 2 && q.includes(first)) || (enroll && q.includes(enroll));
     }) || selectedStudent || students[0];
 
-    // Find target drive from query or context
     const targetDrive = drives.find(d => {
       const name = (d.company_name || d.companyName || '').toLowerCase();
       return name && q.includes(name);
@@ -760,7 +370,6 @@ function determineQueryRouteAndContext(
         reasons.push(`Your branch (${studentBranch}) is not among the eligible branches (${branches.join(', ')}).`);
       }
 
-      // Check existing offer holdings and offer policy rule
       const studentOffers = offers.filter(o => o.student_id === targetStudent.id || o.studentId === targetStudent.id);
       let policyBlockReason: string | null = null;
 
@@ -776,7 +385,6 @@ function determineQueryRouteAndContext(
         }
       }
 
-      // Check for any recorded applications
       const recordedApp = applications.find(a =>
         (a.student_id === targetStudent.id || a.studentId === targetStudent.id) &&
         (a.drive_id === targetDrive.id || a.driveId === targetDrive.id)
@@ -823,7 +431,6 @@ function determineQueryRouteAndContext(
     }
   }
 
-  // 7. DRIVE REQUIREMENTS & CRITERIA INQUIRY
   if (
     q.includes('requirement') ||
     q.includes('criteria') ||
@@ -864,7 +471,6 @@ function determineQueryRouteAndContext(
     };
   }
 
-  // 8. GENERAL PLACEMENT OVERVIEW (Fallback Context)
   const placedList = students.filter(s => isPlaced(s));
   const unplacedList = students.filter(s => !isPlaced(s));
 
@@ -899,4 +505,159 @@ function determineQueryRouteAndContext(
   };
 }
 
-startServer();
+/**
+ * Vercel Serverless Function Handler
+ */
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method Not Allowed' });
+  }
+
+  console.log("AI route called");
+
+  try {
+    const {
+      question: bodyQuestion,
+      message,
+      studentId,
+      driveId,
+      clientData
+    } = req.body || {};
+
+    const currentQuestion = (bodyQuestion || message || '').trim();
+    console.log("Question received:", currentQuestion);
+
+    if (!currentQuestion) {
+      return res.status(400).json({ error: 'Query message is required.' });
+    }
+
+    let students = clientData?.students || [];
+    let drives = clientData?.drives || [];
+    let applications = clientData?.applications || [];
+    let offers = clientData?.offers || [];
+    let companies = clientData?.companies || [];
+    let offerPolicy = clientData?.offerPolicy || null;
+
+    if (supabaseServerClient && (!students.length || !drives.length)) {
+      try {
+        const fetchPromise = Promise.all([
+          supabaseServerClient.from('students').select('*'),
+          supabaseServerClient.from('placement_drives').select('*'),
+          supabaseServerClient.from('applications').select('*'),
+          supabaseServerClient.from('offers').select('*'),
+          supabaseServerClient.from('companies').select('*')
+        ]);
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+        const dbResults = await Promise.race([fetchPromise, timeoutPromise]);
+        if (dbResults && Array.isArray(dbResults)) {
+          const [sRes, dRes, aRes, oRes, cRes] = dbResults;
+          if (sRes.data && sRes.data.length > 0) students = sRes.data;
+          if (dRes.data && dRes.data.length > 0) drives = dRes.data;
+          if (aRes.data && aRes.data.length > 0) applications = aRes.data;
+          if (oRes.data && oRes.data.length > 0) offers = oRes.data;
+          if (cRes.data && cRes.data.length > 0) companies = cRes.data;
+        }
+      } catch (dbErr) {
+        console.warn('[Vercel Serverless] Supabase query notice:', dbErr);
+      }
+    }
+
+    const { questionType, relevantContext } = determineQueryRouteAndContext(currentQuestion, {
+      students,
+      drives,
+      applications,
+      offers,
+      companies,
+      offerPolicy,
+      studentId,
+      driveId
+    });
+
+    console.log('AI QUESTION:', currentQuestion);
+    console.log('QUESTION TYPE:', questionType);
+    console.log('AI CONTEXT:', relevantContext);
+
+    const systemInstruction = `You are PlaceFlow AI, an assistant for a college Training & Placement Cell.
+Answer the user's question using ONLY the supplied placement data.
+Never invent placement statistics.
+Never change eligibility decisions.
+Never change offer-policy decisions.
+If the required information is unavailable, say that the information is not available.`;
+
+    const promptContent = `USER QUESTION:
+${currentQuestion}
+
+PLACEMENT DATA:
+${JSON.stringify(relevantContext, null, 2)}`;
+
+    const ai = getGeminiClient();
+    if (!ai) {
+      const keyErr = new Error('GEMINI_API_KEY environment variable is not configured.');
+      console.error("Gemini route error:", keyErr);
+      return res.status(503).json({
+        error: 'PlaceFlow AI is temporarily unavailable. Please try again.',
+        response: 'PlaceFlow AI is temporarily unavailable. Please try again.',
+        text: 'PlaceFlow AI is temporarily unavailable. Please try again.'
+      });
+    }
+
+    console.log("Gemini request starting");
+
+    const CANDIDATE_MODELS = [
+      'gemini-3.6-flash',
+      'gemini-3.7-flash',
+      'gemini-3.5-flash',
+      'gemini-flash-latest'
+    ];
+
+    let responseText = '';
+    let usedProvider = 'gemini-3.6-flash';
+
+    for (const modelName of CANDIDATE_MODELS) {
+      try {
+        const response = await ai.models.generateContent({
+          model: modelName,
+          contents: promptContent,
+          config: {
+            systemInstruction,
+            temperature: 0.2
+          }
+        });
+        if (response?.text) {
+          responseText = response.text;
+          usedProvider = modelName;
+          console.log("Gemini request completed");
+          console.log(`[Vercel Serverless] Gemini response successfully received via ${modelName}`);
+          break;
+        }
+      } catch (geminiError: any) {
+        console.log(`[Vercel Serverless] Model ${modelName} transient load notice, trying next candidate model...`);
+      }
+    }
+
+    if (!responseText.trim()) {
+      const emptyErr = new Error('All Gemini candidate models failed to return a response.');
+      console.error("Gemini route error:", emptyErr);
+      return res.status(503).json({
+        error: 'PlaceFlow AI is temporarily unavailable. Please try again.',
+        response: 'PlaceFlow AI is temporarily unavailable. Please try again.',
+        text: 'PlaceFlow AI is temporarily unavailable. Please try again.'
+      });
+    }
+
+    return res.status(200).json({
+      response: responseText.trim(),
+      text: responseText.trim(),
+      provider: usedProvider,
+      questionType,
+      status: 'ok'
+    });
+  } catch (err: any) {
+    console.error("Gemini route error:", err);
+    return res.status(503).json({
+      error: 'PlaceFlow AI is temporarily unavailable. Please try again.',
+      response: 'PlaceFlow AI is temporarily unavailable. Please try again.',
+      text: 'PlaceFlow AI is temporarily unavailable. Please try again.'
+    });
+  }
+}
