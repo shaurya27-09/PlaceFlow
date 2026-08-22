@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Edit3 } from 'lucide-react';
+import { X, Edit3, AlertCircle, Loader2 } from 'lucide-react';
 import { Student, Branch, PlacementStatus } from '../../types';
 
 interface EditStudentModalProps {
@@ -24,6 +24,8 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ isOpen, stud
   const [graduationYear, setGraduationYear] = useState<number>(2026);
   const [skillsInput, setSkillsInput] = useState('');
   const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>('Male');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (student) {
@@ -39,31 +41,47 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ isOpen, stud
       setGraduationYear(student.graduationYear || 2026);
       setSkillsInput((student.skills || []).join(', '));
       setGender((student.gender as any) || 'Male');
+      setErrorMessage(null);
     }
   }, [student]);
 
   if (!isOpen || !student) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setErrorMessage('Student name is required.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
     const skills = skillsInput.split(',').map(s => s.trim()).filter(Boolean);
 
-    updateStudent(student.id, {
-      name,
-      enrollmentNumber,
-      email: email || `${name.toLowerCase().replace(/\s+/g, '.')}@usict.ac.in`,
-      phone: phone || '+91 98765 00000',
-      branch,
-      cgpa: parseFloat(cgpa) || 7.0,
-      backlogs: Number(backlogs),
-      attendance: Number(attendance),
-      placementStatus,
-      graduationYear: Number(graduationYear),
-      skills: skills.length > 0 ? skills : ['DSA', 'Python', 'C++'],
-      gender
-    });
+    try {
+      await updateStudent(student.id, {
+        name: trimmedName,
+        enrollmentNumber: enrollmentNumber.trim(),
+        email: email.trim() || `${trimmedName.toLowerCase().replace(/\s+/g, '.')}@usict.ac.in`,
+        phone: phone.trim() || '+91 98765 00000',
+        branch,
+        cgpa: parseFloat(cgpa) || 7.0,
+        backlogs: Number(backlogs),
+        attendance: Number(attendance),
+        placementStatus,
+        graduationYear: Number(graduationYear),
+        skills: skills.length > 0 ? skills : ['DSA', 'Python', 'C++'],
+        gender
+      });
 
-    onClose();
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to update student');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,7 +109,14 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ isOpen, stud
 
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
-          <div className="grid grid-cols-2 gap-3">
+            {errorMessage && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-2 text-red-700 dark:text-red-300">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
                 Full Name *
@@ -294,16 +319,25 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ isOpen, stud
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               id="submit-edit-student-btn"
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm transition-colors"
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
             >
-              Update Student
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Updating in Database...</span>
+                </>
+              ) : (
+                <span>Update Student</span>
+              )}
             </button>
           </div>
         </form>

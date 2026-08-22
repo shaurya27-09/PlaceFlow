@@ -138,24 +138,116 @@ export const SupabaseSettingsPage: React.FC = () => {
     }
   };
 
-  const sqlSchemaSnippet = `-- PlaceFlow TPC PostgreSQL Database Schema for Supabase
--- Offers Table for Eligibility Engine & Placement Records (Live Schema)
+  const sqlSchemaSnippet = `-- PlaceFlow TPC PostgreSQL Database Schema & RLS Policies for Supabase
+-- Run this script in your Supabase SQL Editor (SQL Editor -> New Query -> Run)
+
+-- 1. Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- 2. Students Table
+CREATE TABLE IF NOT EXISTS public.students (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    enrollment_no TEXT,
+    full_name TEXT,
+    email TEXT,
+    branch TEXT,
+    cgpa NUMERIC(4, 2),
+    backlogs INTEGER DEFAULT 0,
+    attendance INTEGER DEFAULT 85,
+    graduation_year INTEGER DEFAULT 2026,
+    placement_status TEXT DEFAULT 'Unplaced',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 3. Companies Table
+CREATE TABLE IF NOT EXISTS public.companies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name TEXT NOT NULL,
+    industry TEXT,
+    website TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    contact_name TEXT,
+    contact_email TEXT,
+    contact_phone TEXT,
+    status TEXT DEFAULT 'Active',
+    contact_person TEXT
+);
+
+-- 4. Placement Drives Table
+CREATE TABLE IF NOT EXISTS public.placement_drives (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
+    role TEXT NOT NULL,
+    package_lpa NUMERIC(5, 2) NOT NULL,
+    min_cgpa NUMERIC(4, 2) DEFAULT 6.0,
+    max_backlogs INTEGER DEFAULT 0,
+    min_attendance INTEGER DEFAULT 75,
+    eligible_branches TEXT[] DEFAULT ARRAY['CSE', 'IT']::TEXT[],
+    graduation_year INTEGER DEFAULT 2026,
+    offer_limit_lpa NUMERIC(5, 2),
+    drive_date DATE DEFAULT CURRENT_DATE,
+    status TEXT DEFAULT 'Active',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 5. Applications Table
+CREATE TABLE IF NOT EXISTS public.applications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    drive_id UUID NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'Applied',
+    applied_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. Offers Table
 CREATE TABLE IF NOT EXISTS public.offers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
     drive_id UUID NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
     company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
     package_lpa NUMERIC(5, 2) NOT NULL,
-    status TEXT NOT NULL,
-    offer_date DATE,
+    status TEXT NOT NULL DEFAULT 'Offered',
+    offer_date DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
--- Enable Row Level Security (RLS) & Grant Access
+-- 7. Eligibility Results Table
+CREATE TABLE IF NOT EXISTS public.eligibility_results (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    drive_id UUID NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
+    eligible BOOLEAN NOT NULL,
+    reasons JSONB DEFAULT '[]'::jsonb,
+    checked_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(student_id, drive_id)
+);
+
+-- 8. Row Level Security (RLS) & Policies (Idempotent Drops + Grants)
+ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to students" ON public.students;
+CREATE POLICY "Public access to students" ON public.students FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to companies" ON public.companies;
+CREATE POLICY "Public access to companies" ON public.companies FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.placement_drives ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to drives" ON public.placement_drives;
+DROP POLICY IF EXISTS "Public access to placement_drives" ON public.placement_drives;
+CREATE POLICY "Public access to placement_drives" ON public.placement_drives FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to applications" ON public.applications;
+CREATE POLICY "Public access to applications" ON public.applications FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
 ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public access to offers" ON public.offers FOR ALL USING (true) WITH CHECK (true);`;
+DROP POLICY IF EXISTS "Public access to offers" ON public.offers;
+CREATE POLICY "Public access to offers" ON public.offers FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.eligibility_results ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to eligibility_results" ON public.eligibility_results;
+CREATE POLICY "Public access to eligibility_results" ON public.eligibility_results FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);`;
 
   return (
     <div className="space-y-6 pb-12">

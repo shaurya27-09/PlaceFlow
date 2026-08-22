@@ -357,7 +357,7 @@ export async function runEligibilityCheck(
         const { data: studentsData, error: studentsError } = await supabase
           .from('students')
           .select('*')
-          .order('name', { ascending: true });
+          .order('full_name', { ascending: true });
 
         if (studentsError) {
           console.warn('Notice querying Supabase students (using provided context):', studentsError.message);

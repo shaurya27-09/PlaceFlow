@@ -746,7 +746,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (isSupabaseConfigured) {
       const res = await addStudentToSupabase({
         ...studentData,
-        id: generateUUID(),
         offers: []
       });
       if (res.error) {
@@ -757,6 +756,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const savedStudent: Student = {
           ...studentData,
           id: String(res.data.id),
+          name: res.data.full_name || studentData.name,
+          enrollmentNumber: res.data.enrollment_no || studentData.enrollmentNumber,
+          email: res.data.email || studentData.email,
+          branch: (res.data.branch as any) || studentData.branch,
+          cgpa: typeof res.data.cgpa === 'number' ? res.data.cgpa : studentData.cgpa,
+          backlogs: typeof res.data.backlogs === 'number' ? res.data.backlogs : studentData.backlogs,
+          attendance: typeof res.data.attendance === 'number' ? res.data.attendance : studentData.attendance,
+          graduationYear: typeof res.data.graduation_year === 'number' ? res.data.graduation_year : studentData.graduationYear,
+          placementStatus: (res.data.placement_status as any) || studentData.placementStatus,
           offers: []
         };
         setStudents(prev => [savedStudent, ...prev]);
@@ -830,8 +838,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Company Actions
-  const addCompany = async (companyData: Omit<Company, 'id'> | any) => {
-    if (isSupabaseConfigured) {
+  const addCompany = async (companyData: Omit<Company, 'id'> | any, options?: { localOnly?: boolean }) => {
+    if (isSupabaseConfigured && !options?.localOnly) {
       // Send payload to Supabase using only valid DB columns
       const res = await addCompanyToSupabase(companyData);
       if (res.error) {
@@ -888,7 +896,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       logo: companyData.logo || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=128&auto=format&fit=crop&q=80'
     };
     setCompanies(prev => [newCompany, ...prev]);
-    addToast('Company Registered', `${newCompany.name} partner profile created.`, 'success');
+    addToast('Company Registered', `${newCompany.name} added to session.`, 'success');
   };
 
   const updateCompany = async (id: string, partial: Partial<Company>) => {

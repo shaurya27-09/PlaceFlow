@@ -15,6 +15,7 @@ import {
   UserProfile,
   UserRole,
   DbStudentRow,
+  StudentDbInsert,
   DbCompanyRow,
   DbPlacementDriveRow,
   DbEligibilityResultRow,
@@ -839,58 +840,63 @@ export async function fetchStudentsFromSupabase(): Promise<{ data?: Student[]; e
   }
 }
 
-export async function addStudentToSupabase(student: Student): Promise<{ data?: Student; error?: string }> {
+export async function addStudentToSupabase(student: Student | Partial<Student>): Promise<{ data?: DbStudentRow; error?: string }> {
   if (!isSupabaseConfigured || !supabase) {
-    return { data: student };
+    return { error: 'Supabase is not configured' };
   }
-  const studentId = isValidUUID(student.id) ? student.id : generateUUID();
-  const row: DbStudentRow = {
-    id: studentId,
-    enrollment_no: student.enrollmentNumber || null,
-    full_name: student.name || 'Student',
+
+  // STRICT authoritative columns payload ONLY:
+  // enrollment_no, full_name, email, branch, cgpa, backlogs, attendance, graduation_year, placement_status
+  // (Do not manually send id, avatar, created_by, or created_at when Supabase/database generates them)
+  const payload: StudentDbInsert = {
+    enrollment_no: student.enrollmentNumber || (student as any).enrollment_no || null,
+    full_name: student.name || (student as any).full_name || 'Student',
     email: student.email || null,
     branch: student.branch || 'CSE',
     cgpa: typeof student.cgpa === 'number' ? student.cgpa : (parseFloat(String(student.cgpa || 0)) || 0),
     backlogs: typeof student.backlogs === 'number' ? student.backlogs : (parseInt(String(student.backlogs || 0), 10) || 0),
     attendance: typeof student.attendance === 'number' ? student.attendance : (parseInt(String(student.attendance || 100), 10) || 100),
     graduation_year: typeof student.graduationYear === 'number' ? student.graduationYear : (parseInt(String((student as any).graduation_year || 2026), 10) || 2026),
-    placement_status: student.placementStatus || 'Unplaced'
+    placement_status: student.placementStatus || (student as any).placement_status || 'Unplaced'
   };
 
   try {
-    const { data, error } = await supabase.from('students').insert([row]).select();
+    const { data, error } = await supabase
+      .from('students')
+      .insert(payload)
+      .select()
+      .single();
 
     if (error) {
       console.error('[Supabase Error]', {
         table: 'students',
         operation: 'insert',
-        payloadKeys: Object.keys(row),
+        payloadKeys: Object.keys(payload),
         error
       });
-      return { data: student, error: error.message };
+      return { error: error.message };
     }
-    const savedStudent: Student = {
-      ...student,
-      id: data?.[0]?.id || studentId
-    };
-    return { data: savedStudent };
+    return { data };
   } catch (err: any) {
     console.error('[Supabase Exception]', {
       table: 'students',
       operation: 'insert',
       error: err
     });
-    return { data: student, error: err?.message || 'Failed to insert student into Supabase' };
+    return { error: err?.message || 'Failed to insert student into Supabase' };
   }
 }
 
 export async function updateStudentInSupabase(id: string, partial: Partial<Student> & Partial<DbStudentRow>): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) {
-    return { success: true };
+    return { success: false, error: 'Supabase is not configured' };
   }
-  const payload: Partial<DbStudentRow> = {};
+
+  // STRICT authoritative columns payload ONLY:
+  // enrollment_no, full_name, email, branch, cgpa, backlogs, attendance, graduation_year, placement_status
+  const payload: Partial<StudentDbInsert> = {};
   if (partial.name !== undefined || partial.full_name !== undefined) {
-    payload.full_name = partial.full_name || partial.name || null;
+    payload.full_name = partial.full_name || partial.name || 'Student';
   }
   if (partial.enrollmentNumber !== undefined || partial.enrollment_no !== undefined) {
     payload.enrollment_no = partial.enrollment_no || partial.enrollmentNumber || null;
@@ -921,6 +927,7 @@ export async function updateStudentInSupabase(id: string, partial: Partial<Stude
       console.error('[Supabase Error]', {
         table: 'students',
         operation: 'update',
+        payloadKeys: Object.keys(payload),
         error
       });
       return { success: false, error: error.message };

@@ -29,6 +29,18 @@ export interface DbStudentRow {
   created_at?: string | null;
 }
 
+export interface StudentDbInsert {
+  enrollment_no: string | null;
+  full_name: string;
+  email: string | null;
+  branch: string | null;
+  cgpa: number | null;
+  backlogs: number | null;
+  attendance: number | null;
+  graduation_year: number | null;
+  placement_status: string;
+}
+
 export interface DbCompanyRow {
   id: string; // uuid NOT NULL
   company_name: string | null;

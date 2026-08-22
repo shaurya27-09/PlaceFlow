@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Student, Branch, PlacementStatus } from '../../types';
-import { supabase } from '../../lib/supabase';
+import { supabase, isSupabaseConfigured, fetchStudentsFromSupabase } from '../../lib/supabase';
 import {
   Users,
   Search,
@@ -45,48 +45,40 @@ export const StudentsPage: React.FC = () => {
   // Active students to display (fetched Supabase data or context fallback)
   const students = supabaseStudents ?? contextStudents ?? [];
 
-  // Fetch real data from Supabase students table
-  const fetchSupabaseStudents = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    try {
-      if (supabase) {
-        const { data, error } = await supabase
-          .from("students")
-          .select("*");
+  // Sync with context students if updated
+  useEffect(() => {
+    if (contextStudents && contextStudents.length > 0 && (!supabaseStudents || supabaseStudents.length === 0)) {
+      setSupabaseStudents(contextStudents);
+    }
+  }, [contextStudents]);
 
-        if (error) {
-          console.warn("Supabase students query notice (using local cache):", error.message);
-          setSupabaseStudents(contextStudents);
-        } else if (data && data.length > 0) {
-          const mapped: Student[] = data.map((row: any) => ({
-            id: String(row.id),
-            name: row.name || 'Unnamed Student',
-            enrollmentNumber: row.enrollment_number || row.enrollmentNumber || '',
-            email: row.email || '',
-            phone: row.phone || '',
-            branch: (row.branch as Branch) || 'CSE',
-            cgpa: parseFloat(row.cgpa) || 0,
-            backlogs: parseInt(row.backlogs, 10) || 0,
-            attendance: parseInt(row.attendance, 10) || 75,
-            placementStatus: (row.placement_status || row.placementStatus || 'Unplaced') as PlacementStatus,
-            offers: Array.isArray(row.offers) ? row.offers : (row.offers ? (typeof row.offers === 'string' ? JSON.parse(row.offers) : row.offers) : []),
-            graduationYear: parseInt(row.graduation_year || row.graduationYear, 10) || 2026,
-            skills: Array.isArray(row.skills) ? row.skills : (row.skills ? (typeof row.skills === 'string' ? JSON.parse(row.skills) : []) : []),
-            gender: row.gender,
-            resumeUrl: row.resume_url || row.resumeUrl,
-            avatar: row.avatar
-          }));
-          setSupabaseStudents(mapped);
-        } else {
-          setSupabaseStudents(contextStudents);
-        }
+  // Fetch real data from Supabase students table
+  const fetchSupabaseStudents = async (showLoadingState = true) => {
+    if (!isSupabaseConfigured || !supabase) {
+      if (contextStudents && contextStudents.length > 0) {
+        setSupabaseStudents(contextStudents);
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    if (showLoadingState) {
+      setIsLoading(true);
+    }
+    setErrorMessage(null);
+
+    try {
+      const res = await fetchStudentsFromSupabase();
+      if (res.error) {
+        setErrorMessage(res.error);
+        setSupabaseStudents(contextStudents);
+      } else if (res.data && res.data.length > 0) {
+        setSupabaseStudents(res.data);
       } else {
-        // If Supabase credentials are not configured yet, fallback to context
         setSupabaseStudents(contextStudents);
       }
     } catch (err: any) {
-      console.warn("Notice querying Supabase students (using local cache):", err?.message);
+      setErrorMessage(err?.message || 'Failed to load students');
       setSupabaseStudents(contextStudents);
     } finally {
       setIsLoading(false);
@@ -97,7 +89,7 @@ export const StudentsPage: React.FC = () => {
     fetchSupabaseStudents();
 
     // Set up real-time postgres changes listener safely
-    if (supabase) {
+    if (supabase && isSupabaseConfigured) {
       try {
         const channel = supabase
           .channel('students-page-realtime')
@@ -105,7 +97,7 @@ export const StudentsPage: React.FC = () => {
             'postgres_changes',
             { event: '*', schema: 'public', table: 'students' },
             () => {
-              fetchSupabaseStudents();
+              fetchSupabaseStudents(false);
             }
           )
           .subscribe();
@@ -215,7 +207,7 @@ export const StudentsPage: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             id="refresh-students-supabase-btn"
-            onClick={fetchSupabaseStudents}
+            onClick={() => fetchSupabaseStudents(true)}
             disabled={isLoading}
             className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
             title="Fetch live records from Supabase students table"

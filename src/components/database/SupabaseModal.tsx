@@ -184,20 +184,33 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 
 -- 9. Row Level Security (RLS) & Policies
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.placement_drives ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.eligibility_results ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to students" ON public.students;
+CREATE POLICY "Public access to students" ON public.students FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
 
-CREATE POLICY "Public access to students" ON public.students FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to companies" ON public.companies FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to drives" ON public.placement_drives FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to applications" ON public.applications FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to offers" ON public.offers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to eligibility_results" ON public.eligibility_results FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);`;
+ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to companies" ON public.companies;
+CREATE POLICY "Public access to companies" ON public.companies FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.placement_drives ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to drives" ON public.placement_drives;
+DROP POLICY IF EXISTS "Public access to placement_drives" ON public.placement_drives;
+CREATE POLICY "Public access to placement_drives" ON public.placement_drives FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to applications" ON public.applications;
+CREATE POLICY "Public access to applications" ON public.applications FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to offers" ON public.offers;
+CREATE POLICY "Public access to offers" ON public.offers FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.eligibility_results ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to eligibility_results" ON public.eligibility_results;
+CREATE POLICY "Public access to eligibility_results" ON public.eligibility_results FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to profiles" ON public.profiles;
+CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlSchemaSnippet);

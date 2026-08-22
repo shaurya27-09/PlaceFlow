@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Building2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Building2, AlertCircle, Loader2, Copy, Check, ShieldAlert, Database } from 'lucide-react';
 import { CompanyTier } from '../../types';
 
 interface AddCompanyModalProps {
@@ -10,7 +10,7 @@ interface AddCompanyModalProps {
 }
 
 export const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const { addCompany } = useApp();
+  const { addCompany, addToast } = useApp();
 
   const [name, setName] = useState('');
   const [industry, setIndustry] = useState('Technology & Software');
@@ -27,8 +27,60 @@ export const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ isOpen, onClos
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copiedRlsSql, setCopiedRlsSql] = useState(false);
 
   if (!isOpen) return null;
+
+  const rlsFixSql = `ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to companies" ON public.companies;
+CREATE POLICY "Public access to companies" ON public.companies FOR ALL TO anon, authenticated USING (true) WITH CHECK (true);`;
+
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(rlsFixSql);
+    setCopiedRlsSql(true);
+    addToast('SQL Copied', 'RLS fix SQL policy copied to clipboard. Run this in your Supabase SQL Editor.', 'success');
+    setTimeout(() => setCopiedRlsSql(false), 3000);
+  };
+
+  const handleSaveLocalFallback = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+
+    setIsSubmitting(true);
+    try {
+      const companyPayload = {
+        name: trimmedName,
+        company_name: trimmedName,
+        industry: industry.trim(),
+        tier,
+        status,
+        averagePackage: parseFloat(averagePackage) || 0,
+        minPackage: parseFloat(minPackage) || 0,
+        maxPackage: parseFloat(maxPackage) || 0,
+        website: website.trim(),
+        location: location.trim(),
+        contactPerson: contactPerson.trim(),
+        contact_person: contactPerson.trim(),
+        contact_name: contactPerson.trim(),
+        contactEmail: contactEmail.trim(),
+        contact_email: contactEmail.trim(),
+        contactPhone: contactPhone.trim(),
+        contact_phone: contactPhone.trim(),
+        openDrivesCount: 0,
+        totalHiredHistory: 0,
+        logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=128&auto=format&fit=crop&q=80'
+      };
+
+      await (addCompany as any)(companyPayload, { localOnly: true });
+      if (onSuccess) onSuccess();
+      setName('');
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to save company locally');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,9 +135,15 @@ export const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ isOpen, onClos
     }
   };
 
+  const isRlsError = errorMessage && (
+    errorMessage.toLowerCase().includes('row-level security') ||
+    errorMessage.toLowerCase().includes('policy') ||
+    errorMessage.includes('42501')
+  );
+
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full flex flex-col max-h-[82vh] my-auto animate-in zoom-in-95 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full flex flex-col max-h-[85vh] my-auto animate-in zoom-in-95 overflow-hidden">
         {/* Fixed Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
           <div className="flex items-center gap-2.5">
@@ -110,9 +168,45 @@ export const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ isOpen, onClos
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 text-xs">
             {errorMessage && (
-              <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{errorMessage}</span>
+              <div className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-xs space-y-2">
+                <div className="flex items-start gap-2">
+                  {isRlsError ? (
+                    <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  )}
+                  <div className="flex-1">
+                    <span className="font-bold">{isRlsError ? 'Supabase Row-Level Security (RLS) Policy Notice' : 'Database Error'}: </span>
+                    <span>{errorMessage}</span>
+                  </div>
+                </div>
+
+                {isRlsError && (
+                  <div className="pt-2 border-t border-rose-200/60 dark:border-rose-800/60 space-y-2">
+                    <p className="text-[11px] text-slate-700 dark:text-slate-300">
+                      Your Supabase <code className="font-mono font-bold bg-white dark:bg-slate-900 px-1 py-0.5 rounded">companies</code> table has RLS enabled without an INSERT grant for the public/anon role.
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleCopySql}
+                        className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-black text-white dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                      >
+                        {copiedRlsSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        <span>{copiedRlsSql ? 'SQL Copied!' : 'Copy RLS Fix SQL'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveLocalFallback}
+                        disabled={isSubmitting}
+                        className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs"
+                      >
+                        <Database className="w-3.5 h-3.5" />
+                        <span>Save to Current Session</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
