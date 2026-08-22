@@ -1,0 +1,8 @@
+{
+  "name": "PlaceFlow",
+  "description": "Training \u0026 Placement Cell (TPC) Digital Workflow Platform for drive management, automated eligibility gating, offer policy enforcement, and NIRF-style reporting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
