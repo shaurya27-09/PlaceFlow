@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../lib/supabase';
 import { Shield, GraduationCap, Building2, ArrowRight, Layers, Sparkles, Lock, Mail, Sun, Moon, AlertCircle, Loader2 } from 'lucide-react';
 import { UserRole } from '../../types';
 
@@ -29,17 +30,34 @@ export const LoginPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!emailInput.trim() || !passwordInput) {
+    const email = emailInput.trim();
+    const password = passwordInput;
+
+    if (!email || !password) {
       setErrorMessage('Please enter both your email address and password.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const res = await login(emailInput, passwordInput);
-      if (!res.success) {
-        setErrorMessage(res.error || 'Invalid email or password.');
+      // Direct Supabase Authentication using @supabase/supabase-js
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error || !data?.user) {
+        const errorMsg = error?.message || 'Invalid email or password.';
+        if (errorMsg.toLowerCase().includes('email not confirmed')) {
+          setErrorMessage('Email not confirmed. Please confirm the user email in Supabase Dashboard -> Authentication -> Users.');
+        } else {
+          setErrorMessage(errorMsg);
+        }
+        return;
       }
+
+      // Delegate session profile hydration and navigation to AppContext
+      await login(email, password);
     } catch (err: any) {
       setErrorMessage(err?.message || 'Invalid email or password.');
     } finally {
