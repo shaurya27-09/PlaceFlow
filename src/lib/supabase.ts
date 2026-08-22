@@ -217,64 +217,44 @@ async function ensureJsonResponse(resp: Response, targetUrl: string): Promise<Re
 }
 
 /**
- * Resilient custom fetch handler that catches network/CORS/DNS errors
- * and routes through server proxy fallback when direct browser fetch fails.
- * Guarantees a JSON response so @supabase/supabase-js never encounters HTML parse errors.
+ * Custom fetch handler for Supabase requests.
+ * Directly communicates with Supabase and guarantees a clean JSON response
+ * even when the upstream host returns HTML (e.g., paused project status or gateway errors).
+ * Avoids any fallback POST calls to static hosting routes (preventing HTTP 405 Method Not Allowed).
  */
 async function resilientSupabaseFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+  const method = init?.method || 'GET';
 
   try {
-    // 1. Direct browser fetch attempt
+    // 1. Direct browser fetch to Supabase endpoint
     const resp = await fetch(input, init);
     return await ensureJsonResponse(resp, urlStr);
   } catch (browserFetchErr: any) {
-    console.warn('[Supabase Connection] Direct browser fetch failed, trying proxy fallback:', browserFetchErr?.message || browserFetchErr);
+    console.error('[Supabase Network Error]', {
+      url: urlStr,
+      method,
+      operation: 'Direct Supabase Fetch',
+      error: browserFetchErr?.message || browserFetchErr
+    });
 
-    // 2. Server proxy fallback attempt
-    try {
-      const headersObj: Record<string, string> = {};
-      if (init?.headers) {
-        if (init.headers instanceof Headers) {
-          init.headers.forEach((v, k) => { headersObj[k] = v; });
-        } else if (Array.isArray(init.headers)) {
-          init.headers.forEach(([k, v]) => { headersObj[k] = v; });
-        } else {
-          Object.assign(headersObj, init.headers);
-        }
+    const cleanMsg = browserFetchErr?.message?.includes('Failed to fetch')
+      ? `Unable to reach ${urlStr}. Please verify network connectivity and ensure the project is active in your Supabase Dashboard.`
+      : (browserFetchErr?.message || 'Network fetch failure');
+
+    return new Response(
+      JSON.stringify({
+        error: 'fetch_failed',
+        error_description: cleanMsg,
+        message: cleanMsg,
+        code: 'FETCH_ERROR',
+        details: browserFetchErr?.message || ''
+      }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' }
       }
-
-      const proxyResp = await fetch('/api/supabase/proxy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetUrl: urlStr,
-          method: init?.method || 'GET',
-          headers: headersObj,
-          body: init?.body
-        })
-      });
-
-      return await ensureJsonResponse(proxyResp, urlStr);
-    } catch (proxyErr: any) {
-      const cleanMsg = browserFetchErr?.message?.includes('Failed to fetch')
-        ? `Unable to reach ${urlStr}. Please verify that the project is active and unpaused in your Supabase Dashboard.`
-        : (browserFetchErr?.message || 'Network fetch failure');
-
-      return new Response(
-        JSON.stringify({
-          error: 'fetch_failed',
-          error_description: cleanMsg,
-          message: cleanMsg,
-          code: 'FETCH_ERROR',
-          details: `Browser fetch and proxy failed: ${proxyErr?.message || ''}`
-        }),
-        {
-          status: 503,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
-    }
+    );
   }
 }
 
@@ -396,29 +376,7 @@ export async function testSupabaseConnection(): Promise<{
     };
   }
 
-  // 1. Run server-side deep diagnostics (tests DNS, reachability, headers)
-  try {
-    const diagResp = await fetch('/api/supabase/diagnose', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: creds.url, anonKey: creds.anonKey })
-    });
-    if (diagResp.ok) {
-      const diagData = await diagResp.json().catch(() => ({}));
-      if (!diagData.success) {
-        return {
-          success: false,
-          message: diagData.message || 'Supabase host unreachable.',
-          details: diagData.details,
-          hint: diagData.hint
-        };
-      }
-    }
-  } catch (diagErr) {
-    console.warn('[Supabase Connection] Diagnostic endpoint notice:', diagErr);
-  }
-
-  // 2. Client-side query probe on public schema
+  // Client-side query probe on public schema
   try {
     const client = getSupabaseClient();
     if (!client) {
