@@ -70,11 +70,9 @@ export const EditCompanyModal: React.FC<EditCompanyModalProps> = ({ isOpen, comp
           industry: industry.trim(),
           tier: tier,
           status: status,
-          average_package: parseFloat(averagePackage) || 0,
           min_package: parseFloat(minPackage) || 0,
           max_package: parseFloat(maxPackage) || 0,
           website: website.trim(),
-          location: location.trim(),
           contact_person: contactPerson.trim(),
           contact_name: contactPerson.trim(),
           contact_email: contactEmail.trim(),
@@ -88,10 +86,20 @@ export const EditCompanyModal: React.FC<EditCompanyModalProps> = ({ isOpen, comp
             .eq('id', company.id);
 
           if (error) {
-            console.warn('Notice: Remote Supabase update deferred:', error.message);
+            console.error('[Supabase Error]', {
+              table: 'companies',
+              operation: 'update',
+              payloadKeys: Object.keys(payload),
+              error
+            });
           }
         } catch (netErr) {
-          console.warn('Notice: Network request to Supabase deferred to local cache:', netErr);
+          console.error('[Supabase Exception]', {
+            table: 'companies',
+            operation: 'update',
+            payloadKeys: Object.keys(payload),
+            error: netErr
+          });
         }
       }
 

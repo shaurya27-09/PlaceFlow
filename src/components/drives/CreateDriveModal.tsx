@@ -155,7 +155,6 @@ export const CreateDriveModal: React.FC<CreateDriveModalProps> = ({ isOpen, onCl
         jobDescription,
         packageLPA: parseFloat(packageLPA) || 10,
         package_lpa: parseFloat(packageLPA) || 10,
-        offer_limit_lpa: parseFloat(packageLPA) || 10,
         tier,
         minCgpa: parseFloat(minCgpa) || 7.0,
         min_cgpa: parseFloat(minCgpa) || 7.0,

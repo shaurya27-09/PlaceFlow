@@ -808,27 +808,40 @@ export async function seedInitialDataToSupabase(
  */
 export async function upsertStudentToSupabase(student: Student) {
   if (!isSupabaseConfigured || !supabase) return;
+  const payload: Record<string, any> = {
+    id: student.id,
+    name: student.name,
+    enrollment_number: student.enrollmentNumber,
+    email: student.email,
+    phone: student.phone,
+    branch: student.branch,
+    cgpa: student.cgpa,
+    backlogs: student.backlogs,
+    attendance: student.attendance,
+    placement_status: student.placementStatus,
+    offers: student.offers,
+    graduation_year: student.graduationYear,
+    skills: student.skills,
+    gender: student.gender,
+    resume_url: student.resumeUrl
+  };
   try {
-    await supabase.from('students').upsert({
-      id: student.id,
-      name: student.name,
-      enrollment_number: student.enrollmentNumber,
-      email: student.email,
-      phone: student.phone,
-      branch: student.branch,
-      cgpa: student.cgpa,
-      backlogs: student.backlogs,
-      attendance: student.attendance,
-      placement_status: student.placementStatus,
-      offers: student.offers,
-      graduation_year: student.graduationYear,
-      skills: student.skills,
-      gender: student.gender,
-      resume_url: student.resumeUrl,
-      avatar: student.avatar
-    }, { onConflict: 'id' });
+    const { error } = await supabase.from('students').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('[Supabase Error]', {
+        table: 'students',
+        operation: 'upsert',
+        payloadKeys: Object.keys(payload),
+        error
+      });
+    }
   } catch (err) {
-    console.error('Failed to sync student to Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'students',
+      operation: 'upsert',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
   }
 }
 
@@ -847,6 +860,12 @@ export async function fetchStudentsFromSupabase(): Promise<{ data?: Student[]; e
       .order('name', { ascending: true });
 
     if (error) {
+      console.error('[Supabase Error]', {
+        table: 'students',
+        operation: 'select',
+        payloadKeys: [],
+        error
+      });
       return { error: error.message };
     }
 
@@ -885,6 +904,12 @@ export async function fetchStudentsFromSupabase(): Promise<{ data?: Student[]; e
 
     return { data: students };
   } catch (err: any) {
+    console.error('[Supabase Exception]', {
+      table: 'students',
+      operation: 'select',
+      payloadKeys: [],
+      error: err
+    });
     return { error: err?.message || 'Failed to fetch students from Supabase' };
   }
 }
@@ -893,34 +918,27 @@ export async function addStudentToSupabase(student: Student & { user_id?: string
   if (!isSupabaseConfigured || !supabase) {
     return { data: student };
   }
+  const studentId = isValidUUID(student.id) ? student.id : generateUUID();
+  const row: Record<string, any> = {
+    id: studentId,
+    name: student.name || 'Student',
+    enrollment_number: student.enrollmentNumber || '',
+    email: student.email || '',
+    phone: student.phone || null,
+    branch: student.branch || 'CSE',
+    cgpa: student.cgpa ?? 0,
+    backlogs: student.backlogs ?? 0,
+    attendance: student.attendance ?? 100,
+    placement_status: student.placementStatus || 'Unplaced',
+    offers: student.offers || [],
+    graduation_year: student.graduationYear || 2026,
+    skills: student.skills || [],
+    gender: student.gender || 'Male',
+    resume_url: student.resumeUrl || null
+  };
+
   try {
     const authUserId = student.user_id || await getAuthenticatedUserId();
-    const studentId = isValidUUID(student.id) ? student.id : generateUUID();
-    const row: Record<string, any> = {
-      name: student.name || 'Student',
-      enrollment_number: student.enrollmentNumber || '',
-      email: student.email || '',
-      phone: student.phone || null,
-      branch: student.branch || 'CSE',
-      cgpa: student.cgpa ?? 0,
-      backlogs: student.backlogs ?? 0,
-      attendance: student.attendance ?? 100,
-      placement_status: student.placementStatus || 'Unplaced',
-      offers: student.offers || [],
-      graduation_year: student.graduationYear || 2026,
-      skills: student.skills || [],
-      gender: student.gender || 'Male',
-      resume_url: student.resumeUrl || null,
-      avatar: student.avatar || null
-    };
-
-    if (isValidUUID(student.id)) {
-      row.id = student.id;
-    } else {
-      row.id = studentId;
-    }
-
-    // Attach authenticated user.id for Supabase RLS policies
     if (authUserId) {
       row.user_id = authUserId;
       row.created_by = authUserId;
@@ -928,7 +946,6 @@ export async function addStudentToSupabase(student: Student & { user_id?: string
 
     let { data, error } = await supabase.from('students').upsert([row], { onConflict: 'id' }).select();
     
-    // Only strip user_id / created_by if database specifically reports the column does not exist (code 42703)
     if (error && (error.code === '42703' || (error.message?.includes('column') && error.message?.includes('does not exist')))) {
       const fallbackRow = { ...row };
       delete fallbackRow.user_id;
@@ -939,13 +956,23 @@ export async function addStudentToSupabase(student: Student & { user_id?: string
     }
 
     if (error) {
-      console.warn('Notice: Sync student to Supabase deferred:', error.message);
+      console.error('[Supabase Error]', {
+        table: 'students',
+        operation: 'upsert/insert',
+        payloadKeys: Object.keys(row),
+        error
+      });
       return { data: student, error: error.message };
     }
     const savedStudent = data?.[0] ? { ...student, id: data[0].id } : { ...student, id: row.id };
     return { data: savedStudent };
   } catch (err: any) {
-    console.warn('Notice: Sync student to Supabase exception:', err?.message || err);
+    console.error('[Supabase Exception]', {
+      table: 'students',
+      operation: 'upsert/insert',
+      payloadKeys: Object.keys(row),
+      error: err
+    });
     return { data: student, error: err?.message || 'Failed to insert student into Supabase' };
   }
 }
@@ -954,36 +981,45 @@ export async function updateStudentInSupabase(id: string, partial: Partial<Stude
   if (!isSupabaseConfigured || !supabase) {
     return { success: true };
   }
-  try {
-    const payload: Record<string, any> = {};
-    if (partial.name !== undefined) payload.name = partial.name;
-    if (partial.enrollmentNumber !== undefined) payload.enrollment_number = partial.enrollmentNumber;
-    if (partial.email !== undefined) payload.email = partial.email;
-    if (partial.phone !== undefined) payload.phone = partial.phone;
-    if (partial.branch !== undefined) payload.branch = partial.branch;
-    if (partial.cgpa !== undefined) payload.cgpa = partial.cgpa;
-    if (partial.backlogs !== undefined) payload.backlogs = partial.backlogs;
-    if (partial.attendance !== undefined) payload.attendance = partial.attendance;
-    if (partial.placementStatus !== undefined) payload.placement_status = partial.placementStatus;
-    if (partial.offers !== undefined) payload.offers = partial.offers;
-    if (partial.graduationYear !== undefined) payload.graduation_year = partial.graduationYear;
-    if (partial.skills !== undefined) payload.skills = partial.skills;
-    if (partial.gender !== undefined) payload.gender = partial.gender;
-    if (partial.resumeUrl !== undefined) payload.resume_url = partial.resumeUrl;
-    if (partial.avatar !== undefined) payload.avatar = partial.avatar;
+  const payload: Record<string, any> = {};
+  if (partial.name !== undefined) payload.name = partial.name;
+  if (partial.enrollmentNumber !== undefined) payload.enrollment_number = partial.enrollmentNumber;
+  if (partial.email !== undefined) payload.email = partial.email;
+  if (partial.phone !== undefined) payload.phone = partial.phone;
+  if (partial.branch !== undefined) payload.branch = partial.branch;
+  if (partial.cgpa !== undefined) payload.cgpa = partial.cgpa;
+  if (partial.backlogs !== undefined) payload.backlogs = partial.backlogs;
+  if (partial.attendance !== undefined) payload.attendance = partial.attendance;
+  if (partial.placementStatus !== undefined) payload.placement_status = partial.placementStatus;
+  if (partial.offers !== undefined) payload.offers = partial.offers;
+  if (partial.graduationYear !== undefined) payload.graduation_year = partial.graduationYear;
+  if (partial.skills !== undefined) payload.skills = partial.skills;
+  if (partial.gender !== undefined) payload.gender = partial.gender;
+  if (partial.resumeUrl !== undefined) payload.resume_url = partial.resumeUrl;
 
+  try {
     const { error } = await supabase
       .from('students')
       .update(payload)
       .eq('id', id);
 
     if (error) {
-      console.warn('Notice: Update student in Supabase deferred:', error.message);
+      console.error('[Supabase Error]', {
+        table: 'students',
+        operation: 'update',
+        payloadKeys: Object.keys(payload),
+        error
+      });
       return { success: false, error: error.message };
     }
     return { success: true };
   } catch (err: any) {
-    console.warn('Notice: Update student in Supabase exception:', err?.message || err);
+    console.error('[Supabase Exception]', {
+      table: 'students',
+      operation: 'update',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
     return { success: false, error: err?.message || 'Failed to update student in Supabase' };
   }
 }
@@ -999,12 +1035,22 @@ export async function deleteStudentFromSupabase(id: string): Promise<{ success: 
       .eq('id', id);
 
     if (error) {
-      console.warn('Notice: Delete student from Supabase deferred:', error.message);
+      console.error('[Supabase Error]', {
+        table: 'students',
+        operation: 'delete',
+        payloadKeys: ['id'],
+        error
+      });
       return { success: false, error: error.message };
     }
     return { success: true };
   } catch (err: any) {
-    console.warn('Notice: Delete student from Supabase exception:', err?.message || err);
+    console.error('[Supabase Exception]', {
+      table: 'students',
+      operation: 'delete',
+      payloadKeys: ['id'],
+      error: err
+    });
     return { success: false, error: err?.message || 'Failed to delete student from Supabase' };
   }
 }
@@ -1023,6 +1069,12 @@ export async function fetchCompaniesFromSupabase(): Promise<{ data?: Company[]; 
       // Fallback ordering if created_at does not exist
       const fallback = await supabase.from('companies').select('*');
       if (fallback.error) {
+        console.error('[Supabase Error]', {
+          table: 'companies',
+          operation: 'select',
+          payloadKeys: [],
+          error: fallback.error
+        });
         return { error: fallback.error.message };
       }
       return {
@@ -1033,7 +1085,7 @@ export async function fetchCompaniesFromSupabase(): Promise<{ data?: Company[]; 
           industry: row.industry || 'Technology',
           tier: (row.tier as CompanyTier) || 'Dream',
           openDrivesCount: parseInt(row.open_drives_count || row.openDrivesCount, 10) || 0,
-          averagePackage: parseFloat(row.average_package || row.averagePackage) || 0,
+          averagePackage: parseFloat(row.average_package || row.averagePackage || ((row.min_package && row.max_package) ? ((row.min_package + row.max_package) / 2) : 0)) || 0,
           minPackage: parseFloat(row.min_package || row.minPackage) || 0,
           maxPackage: parseFloat(row.max_package || row.maxPackage) || 0,
           status: row.status || 'Active',
@@ -1056,7 +1108,7 @@ export async function fetchCompaniesFromSupabase(): Promise<{ data?: Company[]; 
       industry: row.industry || 'Technology',
       tier: (row.tier as CompanyTier) || 'Dream',
       openDrivesCount: parseInt(row.open_drives_count || row.openDrivesCount, 10) || 0,
-      averagePackage: parseFloat(row.average_package || row.averagePackage) || 0,
+      averagePackage: parseFloat(row.average_package || row.averagePackage || ((row.min_package && row.max_package) ? ((row.min_package + row.max_package) / 2) : 0)) || 0,
       minPackage: parseFloat(row.min_package || row.minPackage) || 0,
       maxPackage: parseFloat(row.max_package || row.maxPackage) || 0,
       status: row.status || 'Active',
@@ -1072,6 +1124,12 @@ export async function fetchCompaniesFromSupabase(): Promise<{ data?: Company[]; 
 
     return { data: companies };
   } catch (err: any) {
+    console.error('[Supabase Exception]', {
+      table: 'companies',
+      operation: 'select',
+      payloadKeys: [],
+      error: err
+    });
     return { error: err?.message || 'Failed to fetch companies from Supabase' };
   }
 }
@@ -1080,51 +1138,48 @@ export async function addCompanyToSupabase(company: Partial<Company> & { name?: 
   if (!isSupabaseConfigured || !supabase) {
     return { error: 'Supabase is not configured' };
   }
+  const compName = company.company_name || company.name || 'Unnamed Company';
+  const minPkg = parseFloat(company.min_package ?? company.minPackage) || 0;
+  const maxPkg = parseFloat(company.max_package ?? company.maxPackage) || parseFloat(company.average_package ?? company.averagePackage) || 0;
+  const contact = company.contactPerson || company.contact_person || company.contact_name || '';
+
+  // Clean payload matching live Supabase 'companies' table schema (no average_package or location):
+  const row: Record<string, any> = {
+    company_name: compName,
+    industry: company.industry || 'Technology',
+    tier: company.tier || 'Dream',
+    status: company.status || 'Active',
+    min_package: minPkg,
+    max_package: maxPkg,
+    website: company.website || '',
+    contact_person: contact,
+    contact_name: contact,
+    contact_email: company.contactEmail || company.contact_email || '',
+    contact_phone: company.contactPhone || company.contact_phone || '',
+    open_drives_count: parseInt(company.open_drives_count ?? company.openDrivesCount, 10) || 0,
+    total_hired_history: parseInt(company.total_hired_history ?? company.totalHiredHistory, 10) || 0,
+    logo: company.logo || ''
+  };
+
   try {
     const authUserId = company.user_id || await getAuthenticatedUserId();
-    const compName = company.company_name || company.name || 'Unnamed Company';
-    
-    // Clean payload matching exact database column names for Supabase 'companies' table:
-    // Uses company_name instead of name, and omits client-side string ID to allow Supabase auto-generated UUID
-    const row: Record<string, any> = {
-      company_name: compName,
-      industry: company.industry || 'Technology',
-      tier: company.tier || 'Dream',
-      status: company.status || 'Active',
-      average_package: parseFloat(company.average_package ?? company.averagePackage) || 0,
-      min_package: parseFloat(company.min_package ?? company.minPackage) || 0,
-      max_package: parseFloat(company.max_package ?? company.maxPackage) || 0,
-      website: company.website || '',
-      location: company.location || '',
-      contact_person: company.contactPerson || company.contact_person || company.contact_name || '',
-      contact_name: company.contactPerson || company.contact_person || company.contact_name || '',
-      contact_email: company.contactEmail || company.contact_email || '',
-      contact_phone: company.contactPhone || company.contact_phone || '',
-      open_drives_count: parseInt(company.open_drives_count ?? company.openDrivesCount, 10) || 0,
-      total_hired_history: parseInt(company.total_hired_history ?? company.totalHiredHistory, 10) || 0,
-      logo: company.logo || ''
-    };
-
     if (authUserId) {
       row.user_id = authUserId;
       row.created_by = authUserId;
     }
 
-    // 1. Primary insert with exact columns
     let { data, error } = await supabase.from('companies').insert([row]).select();
     
     if (error) {
       console.warn('Initial insert on companies notice:', error.message);
-
-      // Handle schema column variance if user_id or specific contact column is absent
       const altRow: Record<string, any> = {
         company_name: compName,
         industry: company.industry || 'Technology',
         tier: company.tier || 'Dream',
         status: company.status || 'Active',
         website: company.website || '',
-        location: company.location || '',
-        contact_person: company.contactPerson || company.contact_person || '',
+        contact_person: contact,
+        contact_name: contact,
         contact_email: company.contactEmail || company.contact_email || '',
         contact_phone: company.contactPhone || company.contact_phone || ''
       };
@@ -1135,17 +1190,21 @@ export async function addCompanyToSupabase(company: Partial<Company> & { name?: 
 
       let altRes = await supabase.from('companies').insert([altRow]).select();
       if (altRes.error) {
-        // Minimal fallback payload without user_id if table does not have user_id
         const minRow: Record<string, any> = {
           company_name: compName,
           industry: company.industry || 'Technology',
           tier: company.tier || 'Dream',
           status: company.status || 'Active',
-          website: company.website || '',
-          location: company.location || ''
+          website: company.website || ''
         };
         const minRes = await supabase.from('companies').insert([minRow]).select();
         if (minRes.error) {
+          console.error('[Supabase Error]', {
+            table: 'companies',
+            operation: 'insert',
+            payloadKeys: Object.keys(minRow),
+            error: minRes.error
+          });
           return { error: minRes.error.message };
         }
         return { data: minRes.data?.[0] || { ...company, company_name: compName } };
@@ -1154,6 +1213,12 @@ export async function addCompanyToSupabase(company: Partial<Company> & { name?: 
     }
     return { data: data?.[0] || { ...company, company_name: compName } };
   } catch (err: any) {
+    console.error('[Supabase Exception]', {
+      table: 'companies',
+      operation: 'insert',
+      payloadKeys: Object.keys(row),
+      error: err
+    });
     return { error: err?.message || 'Failed to insert company into Supabase' };
   }
 }
@@ -1162,49 +1227,54 @@ export async function updateCompanyInSupabase(id: string, partial: Partial<Compa
   if (!isSupabaseConfigured || !supabase) {
     return { success: true };
   }
-  try {
-    const compName = partial.company_name || partial.name;
-    const payload: Record<string, any> = {};
-    if (compName !== undefined) {
-      payload.company_name = compName;
-    }
-    if (partial.industry !== undefined) payload.industry = partial.industry;
-    if (partial.tier !== undefined) payload.tier = partial.tier;
-    if (partial.status !== undefined) payload.status = partial.status;
-    if (partial.averagePackage !== undefined || partial.average_package !== undefined) {
-      payload.average_package = parseFloat(partial.average_package ?? partial.averagePackage) || 0;
-    }
-    if (partial.minPackage !== undefined || partial.min_package !== undefined) {
-      payload.min_package = parseFloat(partial.min_package ?? partial.minPackage) || 0;
-    }
-    if (partial.maxPackage !== undefined || partial.max_package !== undefined) {
-      payload.max_package = parseFloat(partial.max_package ?? partial.maxPackage) || 0;
-    }
-    if (partial.website !== undefined) payload.website = partial.website;
-    if (partial.location !== undefined) payload.location = partial.location;
-    if (partial.contactPerson !== undefined || partial.contact_person !== undefined || partial.contact_name !== undefined) {
-      payload.contact_person = partial.contact_person || partial.contactPerson || partial.contact_name;
-      payload.contact_name = partial.contact_name || partial.contact_person || partial.contactPerson;
-    }
-    if (partial.contactEmail !== undefined || partial.contact_email !== undefined) {
-      payload.contact_email = partial.contact_email || partial.contactEmail;
-    }
-    if (partial.contactPhone !== undefined || partial.contact_phone !== undefined) {
-      payload.contact_phone = partial.contact_phone || partial.contactPhone;
-    }
+  const compName = partial.company_name || partial.name;
+  const payload: Record<string, any> = {};
+  if (compName !== undefined) payload.company_name = compName;
+  if (partial.industry !== undefined) payload.industry = partial.industry;
+  if (partial.tier !== undefined) payload.tier = partial.tier;
+  if (partial.status !== undefined) payload.status = partial.status;
+  if (partial.minPackage !== undefined || partial.min_package !== undefined) {
+    payload.min_package = parseFloat(partial.min_package ?? partial.minPackage) || 0;
+  }
+  if (partial.maxPackage !== undefined || partial.max_package !== undefined) {
+    payload.max_package = parseFloat(partial.max_package ?? partial.maxPackage) || 0;
+  }
+  if (partial.website !== undefined) payload.website = partial.website;
+  if (partial.contactPerson !== undefined || partial.contact_person !== undefined || partial.contact_name !== undefined) {
+    const contact = partial.contact_person || partial.contactPerson || partial.contact_name;
+    payload.contact_person = contact;
+    payload.contact_name = contact;
+  }
+  if (partial.contactEmail !== undefined || partial.contact_email !== undefined) {
+    payload.contact_email = partial.contact_email || partial.contactEmail;
+  }
+  if (partial.contactPhone !== undefined || partial.contact_phone !== undefined) {
+    payload.contact_phone = partial.contact_phone || partial.contactPhone;
+  }
 
+  try {
     const { error } = await supabase
       .from('companies')
       .update(payload)
       .eq('id', id);
 
     if (error) {
-      console.warn('Notice: Remote update company deferred:', error.message);
+      console.error('[Supabase Error]', {
+        table: 'companies',
+        operation: 'update',
+        payloadKeys: Object.keys(payload),
+        error
+      });
       return { success: false, error: error.message };
     }
     return { success: true };
   } catch (err: any) {
-    console.warn('Notice: Exception updating company in Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'companies',
+      operation: 'update',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
     return { success: false, error: err?.message || 'Failed to update company in Supabase' };
   }
 }
@@ -1220,12 +1290,22 @@ export async function deleteCompanyFromSupabase(id: string): Promise<{ success: 
       .eq('id', id);
 
     if (error) {
-      console.warn('Notice: Delete company from Supabase deferred:', error.message);
+      console.error('[Supabase Error]', {
+        table: 'companies',
+        operation: 'delete',
+        payloadKeys: ['id'],
+        error
+      });
       return { success: false, error: error.message };
     }
     return { success: true };
   } catch (err: any) {
-    console.warn('Notice: Delete company from Supabase exception:', err);
+    console.error('[Supabase Exception]', {
+      table: 'companies',
+      operation: 'delete',
+      payloadKeys: ['id'],
+      error: err
+    });
     return { success: false, error: err?.message || 'Failed to delete company from Supabase' };
   }
 }
@@ -1235,7 +1315,6 @@ export async function fetchDrivesFromSupabase(): Promise<{ data?: PlacementDrive
     return { error: 'Supabase is not configured' };
   }
   try {
-    // 1. First attempt to fetch with joined companies table
     let drivesData: any[] | null = null;
 
     try {
@@ -1256,14 +1335,9 @@ export async function fetchDrivesFromSupabase(): Promise<{ data?: PlacementDrive
 
       if (!error && data) {
         drivesData = data;
-      } else if (error) {
-        console.warn('Notice querying placement_drives with join (falling back to lookup):', error.message);
       }
-    } catch (e: any) {
-      console.warn('Relational join exception on placement_drives:', e?.message);
-    }
+    } catch (_) {}
 
-    // 2. Fallback to flat query if join failed or was unavailable
     if (!drivesData) {
       const { data, error } = await supabase
         .from('placement_drives')
@@ -1271,13 +1345,17 @@ export async function fetchDrivesFromSupabase(): Promise<{ data?: PlacementDrive
         .order('drive_date', { ascending: false });
 
       if (error) {
-        console.error('Supabase error fetching placement_drives:', error);
+        console.error('[Supabase Error]', {
+          table: 'placement_drives',
+          operation: 'select',
+          payloadKeys: [],
+          error
+        });
         return { error: error.message };
       }
       drivesData = data || [];
     }
 
-    // Also fetch companies map to ensure company_name is accurately resolved in all cases
     const companiesMap: Record<string, any> = {};
     try {
       const { data: compData } = await supabase.from('companies').select('*');
@@ -1317,7 +1395,7 @@ export async function fetchDrivesFromSupabase(): Promise<{ data?: PlacementDrive
         companyLogo: resolvedCompanyLogo,
         role: row.role || '',
         jobDescription: row.job_description || row.jobDescription || '',
-        packageLPA: parseFloat(row.package_lpa ?? row.packageLPA ?? row.offer_limit_lpa) || 0,
+        packageLPA: parseFloat(row.package_lpa ?? row.packageLPA) || 0,
         tier: resolvedTier,
         minCgpa: parseFloat(row.min_cgpa ?? row.minCgpa) || 0,
         maxBacklogs: parseInt(row.max_backlogs ?? row.maxBacklogs, 10) || 0,
@@ -1347,7 +1425,12 @@ export async function fetchDrivesFromSupabase(): Promise<{ data?: PlacementDrive
 
     return { data: drives };
   } catch (err: any) {
-    console.error('Exception fetching placement_drives from Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'placement_drives',
+      operation: 'select',
+      payloadKeys: [],
+      error: err
+    });
     return { error: err?.message || 'Failed to fetch drives from Supabase' };
   }
 }
@@ -1360,7 +1443,6 @@ export async function addDriveToSupabase(drive: Partial<PlacementDrive> & {
   min_attendance?: number;
   eligible_branches?: any;
   graduation_year?: number;
-  offer_limit_lpa?: number;
   drive_date?: string;
   status?: DriveStatus;
   user_id?: string;
@@ -1399,32 +1481,32 @@ export async function addDriveToSupabase(drive: Partial<PlacementDrive> & {
   if (!isSupabaseConfigured || !supabase) {
     return { data: defaultDriveObj };
   }
+
+  // Strictly sanitized placement_drives payload matching live database schema
+  const primaryRow: Record<string, any> = {
+    id: driveId,
+    company_id: companyId,
+    company_name: drive.companyName || 'Company',
+    company_logo: drive.companyLogo || null,
+    role: drive.role,
+    job_description: drive.jobDescription || null,
+    package_lpa: pkg,
+    tier: drive.tier || (pkg >= 12 ? 'Super Dream' : pkg >= 8 ? 'Dream' : pkg >= 5 ? 'Core' : 'Mass'),
+    min_cgpa: drive.minCgpa ?? drive.min_cgpa ?? 6.0,
+    max_backlogs: drive.maxBacklogs ?? drive.max_backlogs ?? 0,
+    eligible_branches: branches,
+    min_attendance: drive.minAttendance ?? drive.min_attendance ?? 75,
+    graduation_year: drive.graduationYear ?? drive.graduation_year ?? 2026,
+    offer_policy_rule: drive.offerPolicyRule || 'Dream Upgrade Only (>= 1.5x)',
+    drive_date: dDate,
+    registration_deadline: drive.registrationDeadline || dDate,
+    location: drive.location || 'On-Campus',
+    status: dStatus,
+    rounds: drive.rounds || ['Online Assessment', 'Technical Interview', 'HR Interview']
+  };
+
   try {
     const authUserId = drive.user_id || await getAuthenticatedUserId();
-    // 1. Primary insertion payload with full columns including offer_limit_lpa
-    const primaryRow: Record<string, any> = {
-      id: driveId,
-      company_id: companyId,
-      company_name: drive.companyName || 'Company',
-      company_logo: drive.companyLogo || null,
-      role: drive.role,
-      job_description: drive.jobDescription || null,
-      package_lpa: pkg,
-      tier: drive.tier || (pkg >= 12 ? 'Super Dream' : pkg >= 8 ? 'Dream' : pkg >= 5 ? 'Core' : 'Mass'),
-      min_cgpa: drive.minCgpa ?? drive.min_cgpa ?? 6.0,
-      max_backlogs: drive.maxBacklogs ?? drive.max_backlogs ?? 0,
-      eligible_branches: branches,
-      min_attendance: drive.minAttendance ?? drive.min_attendance ?? 75,
-      graduation_year: drive.graduationYear ?? drive.graduation_year ?? 2026,
-      offer_limit_lpa: drive.offer_limit_lpa ?? pkg,
-      offer_policy_rule: drive.offerPolicyRule || 'Dream Upgrade Only (>= 1.5x)',
-      drive_date: dDate,
-      registration_deadline: drive.registrationDeadline || dDate,
-      location: drive.location || 'On-Campus',
-      status: dStatus,
-      rounds: drive.rounds || ['Online Assessment', 'Technical Interview', 'HR Interview']
-    };
-
     if (authUserId) {
       primaryRow.user_id = authUserId;
       primaryRow.created_by = authUserId;
@@ -1434,7 +1516,6 @@ export async function addDriveToSupabase(drive: Partial<PlacementDrive> & {
 
     if (error) {
       console.warn('Initial insert on placement_drives notice:', error.message);
-      // Fallback row KEEPING user_id so RLS policy WITH CHECK (auth.uid() = user_id) passes!
       const fallbackRow: Record<string, any> = {
         id: driveId,
         company_id: companyId,
@@ -1445,7 +1526,6 @@ export async function addDriveToSupabase(drive: Partial<PlacementDrive> & {
         min_attendance: drive.minAttendance ?? drive.min_attendance ?? 75,
         eligible_branches: branches,
         graduation_year: drive.graduationYear ?? drive.graduation_year ?? 2026,
-        offer_limit_lpa: drive.offer_limit_lpa ?? pkg,
         drive_date: dDate,
         status: dStatus
       };
@@ -1464,7 +1544,12 @@ export async function addDriveToSupabase(drive: Partial<PlacementDrive> & {
       }
 
       if (fallbackRes.error) {
-        console.warn('Notice: Remote insert placement drive deferred:', fallbackRes.error.message);
+        console.error('[Supabase Error]', {
+          table: 'placement_drives',
+          operation: 'insert',
+          payloadKeys: Object.keys(fallbackRow),
+          error: fallbackRes.error
+        });
         return { data: defaultDriveObj, error: fallbackRes.error.message };
       }
       data = fallbackRes.data;
@@ -1473,7 +1558,12 @@ export async function addDriveToSupabase(drive: Partial<PlacementDrive> & {
     const savedDrive = data?.[0] ? { ...defaultDriveObj, id: data[0].id } : defaultDriveObj;
     return { data: savedDrive };
   } catch (err: any) {
-    console.warn('Notice: Remote insert placement drive exception:', err?.message || err);
+    console.error('[Supabase Exception]', {
+      table: 'placement_drives',
+      operation: 'insert',
+      payloadKeys: Object.keys(primaryRow),
+      error: err
+    });
     return { data: defaultDriveObj, error: err?.message || 'Failed to insert placement drive into Supabase' };
   }
 }
@@ -1486,88 +1576,71 @@ export async function updateDriveInSupabase(id: string, partial: Partial<Placeme
   min_attendance?: number;
   eligible_branches?: any;
   graduation_year?: number;
-  offer_limit_lpa?: number;
   drive_date?: string;
   status?: DriveStatus;
 }): Promise<{ success: boolean; error?: string }> {
   if (!isSupabaseConfigured || !supabase) {
     return { success: true };
   }
-  try {
-    const payload: Record<string, any> = {};
-    if (partial.companyId !== undefined || partial.company_id !== undefined) {
-      payload.company_id = partial.companyId || partial.company_id;
-    }
-    if (partial.companyName !== undefined) payload.company_name = partial.companyName;
-    if (partial.companyLogo !== undefined) payload.company_logo = partial.companyLogo;
-    if (partial.role !== undefined) payload.role = partial.role;
-    if (partial.jobDescription !== undefined) payload.job_description = partial.jobDescription;
-    if (partial.packageLPA !== undefined || partial.package_lpa !== undefined) {
-      const p = partial.packageLPA ?? partial.package_lpa;
-      payload.package_lpa = p;
-      payload.offer_limit_lpa = p;
-    }
-    if (partial.tier !== undefined) payload.tier = partial.tier;
-    if (partial.minCgpa !== undefined || partial.min_cgpa !== undefined) {
-      payload.min_cgpa = partial.minCgpa ?? partial.min_cgpa;
-    }
-    if (partial.maxBacklogs !== undefined || partial.max_backlogs !== undefined) {
-      payload.max_backlogs = partial.maxBacklogs ?? partial.max_backlogs;
-    }
-    if (partial.eligibleBranches !== undefined || partial.eligible_branches !== undefined) {
-      payload.eligible_branches = partial.eligibleBranches ?? partial.eligible_branches;
-    }
-    if (partial.minAttendance !== undefined || partial.min_attendance !== undefined) {
-      payload.min_attendance = partial.minAttendance ?? partial.min_attendance;
-    }
-    if (partial.graduationYear !== undefined || partial.graduation_year !== undefined) {
-      payload.graduation_year = partial.graduationYear ?? partial.graduation_year;
-    }
-    if (partial.offerPolicyRule !== undefined) payload.offer_policy_rule = partial.offerPolicyRule;
-    if (partial.driveDate !== undefined || partial.drive_date !== undefined) {
-      payload.drive_date = partial.driveDate ?? partial.drive_date;
-    }
-    if (partial.registrationDeadline !== undefined) payload.registration_deadline = partial.registrationDeadline;
-    if (partial.location !== undefined) payload.location = partial.location;
-    if (partial.status !== undefined) payload.status = partial.status;
-    if (partial.rounds !== undefined) payload.rounds = partial.rounds;
+  const payload: Record<string, any> = {};
+  if (partial.companyId !== undefined || partial.company_id !== undefined) {
+    payload.company_id = partial.companyId || partial.company_id;
+  }
+  if (partial.companyName !== undefined) payload.company_name = partial.companyName;
+  if (partial.companyLogo !== undefined) payload.company_logo = partial.companyLogo;
+  if (partial.role !== undefined) payload.role = partial.role;
+  if (partial.jobDescription !== undefined) payload.job_description = partial.jobDescription;
+  if (partial.packageLPA !== undefined || partial.package_lpa !== undefined) {
+    payload.package_lpa = partial.packageLPA ?? partial.package_lpa;
+  }
+  if (partial.tier !== undefined) payload.tier = partial.tier;
+  if (partial.minCgpa !== undefined || partial.min_cgpa !== undefined) {
+    payload.min_cgpa = partial.minCgpa ?? partial.min_cgpa;
+  }
+  if (partial.maxBacklogs !== undefined || partial.max_backlogs !== undefined) {
+    payload.max_backlogs = partial.maxBacklogs ?? partial.max_backlogs;
+  }
+  if (partial.eligibleBranches !== undefined || partial.eligible_branches !== undefined) {
+    payload.eligible_branches = partial.eligibleBranches ?? partial.eligible_branches;
+  }
+  if (partial.minAttendance !== undefined || partial.min_attendance !== undefined) {
+    payload.min_attendance = partial.minAttendance ?? partial.min_attendance;
+  }
+  if (partial.graduationYear !== undefined || partial.graduation_year !== undefined) {
+    payload.graduation_year = partial.graduationYear ?? partial.graduation_year;
+  }
+  if (partial.offerPolicyRule !== undefined) payload.offer_policy_rule = partial.offerPolicyRule;
+  if (partial.driveDate !== undefined || partial.drive_date !== undefined) {
+    payload.drive_date = partial.driveDate ?? partial.drive_date;
+  }
+  if (partial.registrationDeadline !== undefined) payload.registration_deadline = partial.registrationDeadline;
+  if (partial.location !== undefined) payload.location = partial.location;
+  if (partial.status !== undefined) payload.status = partial.status;
+  if (partial.rounds !== undefined) payload.rounds = partial.rounds;
 
+  try {
     const { error } = await supabase
       .from('placement_drives')
       .update(payload)
       .eq('id', id);
 
     if (error) {
-      console.warn('Update placement_drives notice:', error.message);
-      // Fallback with minimal columns if some columns don't exist
-      const minimalPayload: Record<string, any> = {};
-      if (payload.company_id !== undefined) minimalPayload.company_id = payload.company_id;
-      if (payload.role !== undefined) minimalPayload.role = payload.role;
-      if (payload.package_lpa !== undefined) {
-        minimalPayload.package_lpa = payload.package_lpa;
-        minimalPayload.offer_limit_lpa = payload.package_lpa;
-      }
-      if (payload.min_cgpa !== undefined) minimalPayload.min_cgpa = payload.min_cgpa;
-      if (payload.max_backlogs !== undefined) minimalPayload.max_backlogs = payload.max_backlogs;
-      if (payload.min_attendance !== undefined) minimalPayload.min_attendance = payload.min_attendance;
-      if (payload.eligible_branches !== undefined) minimalPayload.eligible_branches = payload.eligible_branches;
-      if (payload.graduation_year !== undefined) minimalPayload.graduation_year = payload.graduation_year;
-      if (payload.drive_date !== undefined) minimalPayload.drive_date = payload.drive_date;
-      if (payload.status !== undefined) minimalPayload.status = payload.status;
-
-      const fallbackRes = await supabase
-        .from('placement_drives')
-        .update(minimalPayload)
-        .eq('id', id);
-
-      if (fallbackRes.error) {
-        console.warn('Notice: Remote update placement drive deferred:', fallbackRes.error.message);
-        return { success: false, error: fallbackRes.error.message };
-      }
+      console.error('[Supabase Error]', {
+        table: 'placement_drives',
+        operation: 'update',
+        payloadKeys: Object.keys(payload),
+        error
+      });
+      return { success: false, error: error.message };
     }
     return { success: true };
   } catch (err: any) {
-    console.warn('Notice: Update placement drive in Supabase exception:', err?.message || err);
+    console.error('[Supabase Exception]', {
+      table: 'placement_drives',
+      operation: 'update',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
     return { success: false, error: err?.message || 'Failed to update drive in Supabase' };
   }
 }
@@ -1583,170 +1656,250 @@ export async function deleteDriveFromSupabase(id: string): Promise<{ success: bo
       .eq('id', id);
 
     if (error) {
-      console.warn('Notice: Delete placement drive in Supabase deferred:', error.message);
+      console.error('[Supabase Error]', {
+        table: 'placement_drives',
+        operation: 'delete',
+        payloadKeys: ['id'],
+        error
+      });
       return { success: false, error: error.message };
     }
     return { success: true };
   } catch (err: any) {
-    console.warn('Notice: Delete placement drive in Supabase exception:', err?.message || err);
+    console.error('[Supabase Exception]', {
+      table: 'placement_drives',
+      operation: 'delete',
+      payloadKeys: ['id'],
+      error: err
+    });
     return { success: false, error: err?.message || 'Failed to delete drive from Supabase' };
   }
 }
 
 export async function upsertCompanyToSupabase(company: Company) {
   if (!isSupabaseConfigured || !supabase) return;
+  const compName = company.company_name || company.name || 'Company';
+  const minPkg = parseFloat(String(company.minPackage ?? 0)) || 0;
+  const maxPkg = parseFloat(String(company.maxPackage ?? company.averagePackage ?? 0)) || 0;
+  const contact = company.contactPerson || company.contactPhone || '';
+
+  const payload: Record<string, any> = {
+    company_name: compName,
+    industry: company.industry,
+    tier: company.tier,
+    open_drives_count: company.openDrivesCount || 0,
+    min_package: minPkg,
+    max_package: maxPkg,
+    status: company.status || 'Active',
+    website: company.website || '',
+    contact_person: contact,
+    contact_name: contact,
+    contact_email: company.contactEmail || '',
+    contact_phone: company.contactPhone || '',
+    total_hired_history: company.totalHiredHistory || 0,
+    logo: company.logo || ''
+  };
+  if (company.id && isValidUUID(company.id)) {
+    payload.id = company.id;
+  }
   try {
     const authUserId = company.user_id || await getAuthenticatedUserId();
-    const compName = company.company_name || company.name || 'Company';
-    const payload: Record<string, any> = {
-      company_name: compName,
-      industry: company.industry,
-      tier: company.tier,
-      open_drives_count: company.openDrivesCount,
-      average_package: company.averagePackage,
-      min_package: company.minPackage,
-      max_package: company.maxPackage,
-      status: company.status,
-      website: company.website,
-      location: company.location,
-      contact_person: company.contactPerson,
-      contact_name: company.contactPerson,
-      contact_email: company.contactEmail,
-      contact_phone: company.contactPhone,
-      total_hired_history: company.totalHiredHistory,
-      logo: company.logo
-    };
-    if (company.id && isValidUUID(company.id)) {
-      payload.id = company.id;
-    }
     if (authUserId) {
       payload.user_id = authUserId;
       payload.created_by = authUserId;
     }
-    await supabase.from('companies').upsert(payload, { onConflict: 'id' });
+    const { error } = await supabase.from('companies').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('[Supabase Error]', {
+        table: 'companies',
+        operation: 'upsert',
+        payloadKeys: Object.keys(payload),
+        error
+      });
+    }
   } catch (err) {
-    console.error('Failed to sync company to Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'companies',
+      operation: 'upsert',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
   }
 }
 
 export async function upsertDriveToSupabase(drive: PlacementDrive) {
   if (!isSupabaseConfigured || !supabase) return;
+  const payload: Record<string, any> = {
+    id: drive.id,
+    company_id: drive.companyId,
+    company_name: drive.companyName,
+    company_logo: drive.companyLogo,
+    role: drive.role,
+    job_description: drive.jobDescription,
+    package_lpa: drive.packageLPA,
+    tier: drive.tier,
+    min_cgpa: drive.minCgpa,
+    max_backlogs: drive.maxBacklogs,
+    eligible_branches: drive.eligibleBranches,
+    min_attendance: drive.minAttendance,
+    graduation_year: drive.graduationYear,
+    offer_policy_rule: drive.offerPolicyRule,
+    drive_date: drive.driveDate,
+    registration_deadline: drive.registrationDeadline,
+    location: drive.location,
+    status: drive.status,
+    rounds: drive.rounds
+  };
   try {
     const authUserId = drive.user_id || await getAuthenticatedUserId();
-    const payload: Record<string, any> = {
-      id: drive.id,
-      company_id: drive.companyId,
-      company_name: drive.companyName,
-      company_logo: drive.companyLogo,
-      role: drive.role,
-      job_description: drive.jobDescription,
-      package_lpa: drive.packageLPA,
-      tier: drive.tier,
-      min_cgpa: drive.minCgpa,
-      max_backlogs: drive.maxBacklogs,
-      eligible_branches: drive.eligibleBranches,
-      min_attendance: drive.minAttendance,
-      graduation_year: drive.graduationYear,
-      offer_policy_rule: drive.offerPolicyRule,
-      drive_date: drive.driveDate,
-      registration_deadline: drive.registrationDeadline,
-      location: drive.location,
-      status: drive.status,
-      rounds: drive.rounds
-    };
     if (authUserId) {
       payload.user_id = authUserId;
       payload.created_by = authUserId;
     }
-    await supabase.from('placement_drives').upsert(payload, { onConflict: 'id' });
+    const { error } = await supabase.from('placement_drives').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('[Supabase Error]', {
+        table: 'placement_drives',
+        operation: 'upsert',
+        payloadKeys: Object.keys(payload),
+        error
+      });
+    }
   } catch (err) {
-    console.error('Failed to sync drive to Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'placement_drives',
+      operation: 'upsert',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
   }
 }
 
 export async function upsertApplicationToSupabase(application: Application) {
   if (!isSupabaseConfigured || !supabase) return;
+  const payload: Record<string, any> = {
+    id: application.id,
+    student_id: application.studentId,
+    student_name: application.studentName,
+    student_enrollment: application.studentEnrollment,
+    student_branch: application.studentBranch,
+    student_cgpa: application.studentCgpa,
+    student_attendance: application.studentAttendance,
+    drive_id: application.driveId,
+    company_name: application.companyName,
+    company_logo: application.companyLogo,
+    role: application.role,
+    package_lpa: application.packageLPA,
+    applied_date: application.appliedDate,
+    eligibility_status: application.eligibilityStatus,
+    ineligibility_reasons: application.ineligibilityReasons,
+    status: application.status,
+    current_round: application.currentRound,
+    interview_slot: application.interviewSlot,
+    feedback: application.feedback
+  };
   try {
     const authUserId = application.user_id || await getAuthenticatedUserId();
-    const payload: Record<string, any> = {
-      id: application.id,
-      student_id: application.studentId,
-      student_name: application.studentName,
-      student_enrollment: application.studentEnrollment,
-      student_branch: application.studentBranch,
-      student_cgpa: application.studentCgpa,
-      student_attendance: application.studentAttendance,
-      drive_id: application.driveId,
-      company_name: application.companyName,
-      company_logo: application.companyLogo,
-      role: application.role,
-      package_lpa: application.packageLPA,
-      applied_date: application.appliedDate,
-      eligibility_status: application.eligibilityStatus,
-      ineligibility_reasons: application.ineligibilityReasons,
-      status: application.status,
-      current_round: application.currentRound,
-      interview_slot: application.interviewSlot,
-      feedback: application.feedback
-    };
     if (authUserId) {
       payload.user_id = authUserId;
       payload.created_by = authUserId;
     }
-    await supabase.from('applications').upsert(payload, { onConflict: 'id' });
+    const { error } = await supabase.from('applications').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('[Supabase Error]', {
+        table: 'applications',
+        operation: 'upsert',
+        payloadKeys: Object.keys(payload),
+        error
+      });
+    }
   } catch (err) {
-    console.error('Failed to sync application to Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'applications',
+      operation: 'upsert',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
   }
 }
 
 export async function upsertOfferToSupabase(offer: Offer) {
   if (!isSupabaseConfigured || !supabase) return;
+  const payload: Record<string, any> = {
+    id: offer.id,
+    student_id: offer.studentId,
+    student_name: offer.studentName,
+    student_enrollment: offer.studentEnrollment,
+    student_branch: offer.studentBranch,
+    company_id: offer.companyId,
+    company_name: offer.companyName,
+    company_logo: offer.companyLogo,
+    company: offer.companyName,
+    role: offer.role,
+    package_lpa: offer.packageLPA,
+    offer_date: offer.offerDate,
+    status: offer.status,
+    offer_status: offer.status,
+    policy_check_passed: offer.policyCheckPassed,
+    policy_violation_reason: offer.policyViolationReason,
+    tier: offer.tier,
+    deadline_date: offer.deadlineDate,
+    bond_years: offer.bondYears
+  };
   try {
     const authUserId = offer.user_id || await getAuthenticatedUserId();
-    const payload: Record<string, any> = {
-      id: offer.id,
-      student_id: offer.studentId,
-      student_name: offer.studentName,
-      student_enrollment: offer.studentEnrollment,
-      student_branch: offer.studentBranch,
-      company_id: offer.companyId,
-      company_name: offer.companyName,
-      company_logo: offer.companyLogo,
-      role: offer.role,
-      package_lpa: offer.packageLPA,
-      offer_date: offer.offerDate,
-      status: offer.status,
-      policy_check_passed: offer.policyCheckPassed,
-      policy_violation_reason: offer.policyViolationReason,
-      tier: offer.tier,
-      deadline_date: offer.deadlineDate,
-      bond_years: offer.bondYears
-    };
     if (authUserId) {
       payload.user_id = authUserId;
       payload.created_by = authUserId;
     }
-    await supabase.from('offers').upsert(payload, { onConflict: 'id' });
+    const { error } = await supabase.from('offers').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('[Supabase Error]', {
+        table: 'offers',
+        operation: 'upsert',
+        payloadKeys: Object.keys(payload),
+        error
+      });
+    }
   } catch (err) {
-    console.error('Failed to sync offer to Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'offers',
+      operation: 'upsert',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
   }
 }
 
 export async function upsertPolicyToSupabase(policy: OfferPolicyConfig) {
   if (!isSupabaseConfigured || !supabase) return;
+  const payload = {
+    id: 'default-policy',
+    allow_multiple_offers: policy.allowMultipleOffers,
+    max_offers_allowed: policy.maxOffersAllowed,
+    dream_threshold_lpa: policy.dreamThresholdLPA,
+    super_dream_threshold_lpa: policy.superDreamThresholdLPA,
+    min_hike_percentage_for_upgrade: policy.minHikePercentageForUpgrade,
+    freeze_on_acceptance: policy.freezeOnAcceptance,
+    mass_recruiter_lock: policy.massRecruiterLock
+  };
   try {
-    await supabase.from('offer_policy').upsert({
-      id: 'default-policy',
-      allow_multiple_offers: policy.allowMultipleOffers,
-      max_offers_allowed: policy.maxOffersAllowed,
-      dream_threshold_lpa: policy.dreamThresholdLPA,
-      super_dream_threshold_lpa: policy.superDreamThresholdLPA,
-      min_hike_percentage_for_upgrade: policy.minHikePercentageForUpgrade,
-      freeze_on_acceptance: policy.freezeOnAcceptance,
-      mass_recruiter_lock: policy.massRecruiterLock
-    }, { onConflict: 'id' });
+    const { error } = await supabase.from('offer_policy').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('[Supabase Error]', {
+        table: 'offer_policy',
+        operation: 'upsert',
+        payloadKeys: Object.keys(payload),
+        error
+      });
+    }
   } catch (err) {
-    console.error('Failed to sync policy to Supabase:', err);
+    console.error('[Supabase Exception]', {
+      table: 'offer_policy',
+      operation: 'upsert',
+      payloadKeys: Object.keys(payload),
+      error: err
+    });
   }
 }
 
