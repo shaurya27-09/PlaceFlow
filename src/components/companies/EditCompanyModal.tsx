@@ -63,48 +63,8 @@ export const EditCompanyModal: React.FC<EditCompanyModalProps> = ({ isOpen, comp
     }
 
     try {
-      if (supabase) {
-        // Clean payload matching exact database column names for Supabase 'companies' table
-        const payload: Record<string, any> = {
-          company_name: trimmedName,
-          industry: industry.trim(),
-          tier: tier,
-          status: status,
-          min_package: parseFloat(minPackage) || 0,
-          max_package: parseFloat(maxPackage) || 0,
-          website: website.trim(),
-          contact_person: contactPerson.trim(),
-          contact_name: contactPerson.trim(),
-          contact_email: contactEmail.trim(),
-          contact_phone: contactPhone.trim()
-        };
-
-        try {
-          const { error } = await supabase
-            .from('companies')
-            .update(payload)
-            .eq('id', company.id);
-
-          if (error) {
-            console.error('[Supabase Error]', {
-              table: 'companies',
-              operation: 'update',
-              payloadKeys: Object.keys(payload),
-              error
-            });
-          }
-        } catch (netErr) {
-          console.error('[Supabase Exception]', {
-            table: 'companies',
-            operation: 'update',
-            payloadKeys: Object.keys(payload),
-            error: netErr
-          });
-        }
-      }
-
-      // Update local context for instant UI responsiveness
-      updateCompany(company.id, {
+      // Update company through context/Supabase
+      await updateCompany(company.id, {
         name: trimmedName,
         company_name: trimmedName,
         industry: industry.trim(),
@@ -126,24 +86,8 @@ export const EditCompanyModal: React.FC<EditCompanyModalProps> = ({ isOpen, comp
 
       onClose();
     } catch (err: any) {
-      console.warn('Notice updating company:', err?.message || err);
-      updateCompany(company.id, {
-        name: trimmedName,
-        company_name: trimmedName,
-        industry: industry.trim(),
-        tier,
-        averagePackage: parseFloat(averagePackage) || 8.0,
-        minPackage: parseFloat(minPackage) || 6.0,
-        maxPackage: parseFloat(maxPackage) || 10.0,
-        status,
-        website: website.trim(),
-        location: location.trim(),
-        contactPerson: contactPerson.trim(),
-        contactEmail: contactEmail.trim(),
-        contactPhone: contactPhone.trim()
-      });
-      if (onSuccess) onSuccess();
-      onClose();
+      console.error('Failed to update company:', err?.message || err);
+      setErrorMessage(err?.message || 'Failed to update company in database.');
     } finally {
       setIsSubmitting(false);
     }

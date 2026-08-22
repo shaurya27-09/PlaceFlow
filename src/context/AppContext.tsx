@@ -815,8 +815,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Company Actions
   const addCompany = async (companyData: Omit<Company, 'id'> | any) => {
     if (isSupabaseConfigured) {
-      // Send payload without client-side string ID so Supabase auto-generates a valid UUID
+      // Send payload to Supabase using only valid DB columns
       const res = await addCompanyToSupabase(companyData);
+      if (res.error) {
+        addToast('Database Error', `Failed to create company: ${res.error}`, 'error');
+        throw new Error(res.error);
+      }
       if (res.data) {
         const compName = res.data.company_name || res.data.name || companyData.company_name || companyData.name || 'Company';
         const savedCompany: Company = {
@@ -824,27 +828,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           name: compName,
           company_name: compName,
           industry: res.data.industry || companyData.industry || 'Technology',
-          tier: res.data.tier || companyData.tier || 'Dream',
-          openDrivesCount: res.data.open_drives_count ?? companyData.openDrivesCount ?? 0,
-          averagePackage: parseFloat(res.data.average_package ?? companyData.averagePackage) || 0,
-          minPackage: parseFloat(res.data.min_package ?? companyData.minPackage) || 0,
-          maxPackage: parseFloat(res.data.max_package ?? companyData.maxPackage) || 0,
+          tier: companyData.tier || 'Dream',
+          openDrivesCount: companyData.openDrivesCount ?? 0,
+          averagePackage: parseFloat(companyData.averagePackage ?? companyData.average_package) || 0,
+          minPackage: parseFloat(companyData.minPackage ?? companyData.min_package) || 0,
+          maxPackage: parseFloat(companyData.maxPackage ?? companyData.max_package) || 0,
           status: res.data.status || companyData.status || 'Active',
           website: res.data.website || companyData.website || '',
-          location: res.data.location || companyData.location || '',
+          location: companyData.location || '',
           contactPerson: res.data.contact_person || res.data.contact_name || companyData.contactPerson || companyData.contact_person || '',
           contactEmail: res.data.contact_email || companyData.contactEmail || companyData.contact_email || '',
           contactPhone: res.data.contact_phone || companyData.contactPhone || companyData.contact_phone || '',
-          totalHiredHistory: parseInt(res.data.total_hired_history ?? companyData.totalHiredHistory, 10) || 0,
-          logo: res.data.logo || companyData.logo || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=128&auto=format&fit=crop&q=80',
+          totalHiredHistory: companyData.totalHiredHistory || 0,
+          logo: companyData.logo || 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=128&auto=format&fit=crop&q=80',
           created_at: res.data.created_at
         };
         setCompanies(prev => [savedCompany, ...prev]);
         addToast('Company Registered', `${savedCompany.name} partner profile created.`, 'success');
         return;
-      }
-      if (res.error) {
-        addToast('Supabase Warning', `Supabase message: ${res.error}`, 'warning');
       }
     }
 
@@ -874,6 +875,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateCompany = async (id: string, partial: Partial<Company>) => {
+    if (isSupabaseConfigured) {
+      const res = await updateCompanyInSupabase(id, partial);
+      if (!res.success && res.error) {
+        addToast('Database Error', `Failed to update company: ${res.error}`, 'error');
+        throw new Error(res.error);
+      }
+    }
+
     setCompanies(prev => {
       const updated = prev.map(c => {
         if (c.id === id) {
@@ -884,24 +893,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return updated;
     });
 
-    if (isSupabaseConfigured) {
-      const res = await updateCompanyInSupabase(id, partial);
-      if (!res.success && res.error) {
-        addToast('Supabase Warning', `Saved locally, Supabase message: ${res.error}`, 'warning');
-      }
-    }
     addToast('Company Updated', 'Company details updated successfully.', 'success');
   };
 
   const deleteCompany = async (id: string) => {
     const targetCompany = companies.find(c => c.id === id);
-    setCompanies(prev => prev.filter(c => c.id !== id));
     if (isSupabaseConfigured) {
       const res = await deleteCompanyFromSupabase(id);
       if (!res.success && res.error) {
-        addToast('Supabase Warning', `Removed locally, Supabase message: ${res.error}`, 'warning');
+        addToast('Database Error', `Failed to delete company: ${res.error}`, 'error');
+        throw new Error(res.error);
       }
     }
+    setCompanies(prev => prev.filter(c => c.id !== id));
     addToast('Company Removed', `${targetCompany ? targetCompany.name : 'Company'} has been removed.`, 'info');
   };
 

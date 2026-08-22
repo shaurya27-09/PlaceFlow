@@ -88,167 +88,116 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ isOpen, onClose })
   };
 
   const sqlSchemaSnippet = `-- PlaceFlow TPC PostgreSQL Database Schema for Supabase
--- Run this in your Supabase SQL Editor (https://supabase.com/dashboard)
+-- Exact Live Schema:
 
 -- 1. Enable UUID Extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- 2. Students Table
 CREATE TABLE IF NOT EXISTS public.students (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    enrollment_number TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT,
-    branch TEXT NOT NULL CHECK (branch IN ('CSE', 'IT', 'ECE', 'EE', 'ME', 'Civil')),
-    cgpa NUMERIC(4, 2) NOT NULL DEFAULT 0.00,
-    backlogs INTEGER NOT NULL DEFAULT 0,
-    attendance INTEGER NOT NULL DEFAULT 100,
-    placement_status TEXT NOT NULL DEFAULT 'Unplaced',
-    offers JSONB DEFAULT '[]'::jsonb,
-    graduation_year INTEGER NOT NULL DEFAULT 2026,
-    skills JSONB DEFAULT '[]'::jsonb,
-    gender TEXT,
-    resume_url TEXT,
-    avatar TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    enrollment_no TEXT,
+    full_name TEXT,
+    email TEXT,
+    branch TEXT,
+    cgpa NUMERIC(4, 2),
+    backlogs INTEGER,
+    attendance INTEGER,
+    graduation_year INTEGER,
+    placement_status TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- 3. Companies Table
 CREATE TABLE IF NOT EXISTS public.companies (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    industry TEXT NOT NULL,
-    tier TEXT NOT NULL,
-    open_drives_count INTEGER DEFAULT 0,
-    average_package NUMERIC(5, 2) DEFAULT 0.00,
-    min_package NUMERIC(5, 2) DEFAULT 0.00,
-    max_package NUMERIC(5, 2) DEFAULT 0.00,
-    status TEXT DEFAULT 'Active',
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name TEXT,
+    industry TEXT,
     website TEXT,
-    location TEXT,
-    contact_person TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    contact_name TEXT,
     contact_email TEXT,
-    total_hired_history INTEGER DEFAULT 0,
-    logo TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    contact_phone TEXT,
+    status TEXT,
+    contact_person TEXT
 );
 
 -- 4. Placement Drives Table
 CREATE TABLE IF NOT EXISTS public.placement_drives (
-    id TEXT PRIMARY KEY,
-    company_id TEXT REFERENCES public.companies(id) ON DELETE SET NULL,
-    company_name TEXT NOT NULL,
-    company_logo TEXT,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
     role TEXT NOT NULL,
-    job_description TEXT,
     package_lpa NUMERIC(5, 2) NOT NULL,
-    tier TEXT NOT NULL,
-    min_cgpa NUMERIC(4, 2) NOT NULL DEFAULT 6.00,
-    max_backlogs INTEGER NOT NULL DEFAULT 0,
-    eligible_branches JSONB NOT NULL DEFAULT '["CSE", "IT", "ECE"]'::jsonb,
-    min_attendance INTEGER NOT NULL DEFAULT 75,
-    graduation_year INTEGER NOT NULL DEFAULT 2026,
-    offer_policy_rule TEXT NOT NULL DEFAULT 'Dream Upgrade Only (>= 1.5x)',
-    drive_date DATE NOT NULL,
-    registration_deadline DATE NOT NULL,
-    location TEXT DEFAULT 'On-Campus',
-    status TEXT NOT NULL DEFAULT 'Active',
-    rounds JSONB DEFAULT '["Online Assessment", "Technical Interview", "HR Interview"]'::jsonb,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    min_cgpa NUMERIC(4, 2),
+    max_backlogs INTEGER,
+    min_attendance INTEGER,
+    eligible_branches TEXT[],
+    graduation_year INTEGER,
+    offer_limit_lpa NUMERIC(5, 2),
+    drive_date DATE,
+    status TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 -- 5. Applications Table
 CREATE TABLE IF NOT EXISTS public.applications (
-    id TEXT PRIMARY KEY,
-    student_id TEXT NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
-    student_name TEXT NOT NULL,
-    student_enrollment TEXT NOT NULL,
-    student_branch TEXT NOT NULL,
-    student_cgpa NUMERIC(4, 2) NOT NULL,
-    student_attendance INTEGER NOT NULL,
-    drive_id TEXT NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
-    company_name TEXT NOT NULL,
-    company_logo TEXT,
-    role TEXT NOT NULL,
-    package_lpa NUMERIC(5, 2) NOT NULL,
-    applied_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    eligibility_status TEXT NOT NULL DEFAULT 'Eligible',
-    ineligibility_reasons JSONB DEFAULT '[]'::jsonb,
-    status TEXT NOT NULL DEFAULT 'Applied',
-    current_round TEXT,
-    interview_slot TEXT,
-    feedback TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    drive_id UUID NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
+    status TEXT NOT NULL,
+    applied_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 6. Offers Table
 CREATE TABLE IF NOT EXISTS public.offers (
-    id TEXT PRIMARY KEY,
-    student_id TEXT NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
-    student_name TEXT NOT NULL,
-    student_enrollment TEXT NOT NULL,
-    student_branch TEXT NOT NULL,
-    company_id TEXT,
-    company_name TEXT NOT NULL,
-    company_logo TEXT,
-    role TEXT NOT NULL,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    drive_id UUID NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
+    company_id UUID NOT NULL REFERENCES public.companies(id) ON DELETE CASCADE,
     package_lpa NUMERIC(5, 2) NOT NULL,
-    offer_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    status TEXT NOT NULL DEFAULT 'Pending',
-    policy_check_passed BOOLEAN NOT NULL DEFAULT true,
-    policy_violation_reason TEXT,
-    tier TEXT NOT NULL DEFAULT 'Core',
-    deadline_date DATE NOT NULL,
-    bond_years INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    status TEXT NOT NULL,
+    offer_date DATE,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
--- 7. Policy Table
-CREATE TABLE IF NOT EXISTS public.offer_policy (
-    id TEXT PRIMARY KEY DEFAULT 'default-policy',
-    allow_multiple_offers BOOLEAN NOT NULL DEFAULT true,
-    max_offers_allowed INTEGER NOT NULL DEFAULT 2,
-    dream_threshold_lpa NUMERIC(5, 2) NOT NULL DEFAULT 8.00,
-    super_dream_threshold_lpa NUMERIC(5, 2) NOT NULL DEFAULT 14.00,
-    min_hike_percentage_for_upgrade NUMERIC(5, 2) NOT NULL DEFAULT 50.00,
-    freeze_on_acceptance BOOLEAN NOT NULL DEFAULT true,
-    mass_recruiter_lock BOOLEAN NOT NULL DEFAULT true,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 8. Eligibility Results Table
+-- 7. Eligibility Results Table
 CREATE TABLE IF NOT EXISTS public.eligibility_results (
-    id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
-    student_id TEXT NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
-    drive_id TEXT NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES public.students(id) ON DELETE CASCADE,
+    drive_id UUID NOT NULL REFERENCES public.placement_drives(id) ON DELETE CASCADE,
     eligible BOOLEAN NOT NULL,
     reasons JSONB DEFAULT '[]'::jsonb,
-    checked_at TIMESTAMPTZ DEFAULT NOW(),
+    checked_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(student_id, drive_id)
 );
 
--- 9. Enable Row Level Security (RLS) & Grant Access
+-- 8. User Profiles Table
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY,
+    email TEXT NOT NULL,
+    role TEXT NOT NULL,
+    student_id UUID,
+    company_id UUID,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- 9. Row Level Security (RLS) & Policies
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.placement_drives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.offer_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.eligibility_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public access to students" ON public.students FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public access to companies" ON public.companies FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public access to drives" ON public.placement_drives FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public access to applications" ON public.applications FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Public access to offers" ON public.offers FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to offer_policy" ON public.offer_policy FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Public access to eligibility_results" ON public.eligibility_results FOR ALL USING (true) WITH CHECK (true);`;
+CREATE POLICY "Public access to eligibility_results" ON public.eligibility_results FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(sqlSchemaSnippet);

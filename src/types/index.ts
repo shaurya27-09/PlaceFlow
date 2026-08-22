@@ -12,6 +12,93 @@ export type OfferStatus = 'Offered' | 'Accepted' | 'Rejected' | 'Withdrawn' | 'P
 
 export type UserRole = 'admin' | 'student' | 'recruiter';
 
+/**
+ * AUTHORITATIVE SUPABASE DATABASE ROW TYPES (Exact Database Schema)
+ */
+export interface DbStudentRow {
+  id: string; // uuid NOT NULL
+  enrollment_no: string | null;
+  full_name: string | null;
+  email: string | null;
+  branch: string | null;
+  cgpa: number | null;
+  backlogs: number | null;
+  attendance: number | null;
+  graduation_year: number | null;
+  placement_status: string | null;
+  created_at?: string | null;
+}
+
+export interface DbCompanyRow {
+  id: string; // uuid NOT NULL
+  company_name: string | null;
+  industry: string | null;
+  website: string | null;
+  created_at?: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  status: string | null;
+  contact_person: string | null;
+}
+
+export interface DbPlacementDriveRow {
+  id: string; // uuid NOT NULL
+  company_id: string; // uuid NOT NULL
+  role: string; // text NOT NULL
+  package_lpa: number; // numeric NOT NULL
+  min_cgpa: number | null;
+  max_backlogs: number | null;
+  min_attendance: number | null;
+  eligible_branches: string[] | null;
+  graduation_year: number | null;
+  offer_limit_lpa: number | null;
+  drive_date: string | null;
+  status: string | null;
+  created_at?: string | null;
+}
+
+export interface DbEligibilityResultRow {
+  id: string; // uuid NOT NULL
+  student_id: string; // uuid NOT NULL
+  drive_id: string; // uuid NOT NULL
+  eligible: boolean; // boolean NOT NULL
+  reasons: string[] | null;
+  checked_at?: string | null;
+}
+
+export interface DbApplicationRow {
+  id: string; // uuid NOT NULL
+  student_id: string; // uuid NOT NULL
+  drive_id: string; // uuid NOT NULL
+  status: string; // text NOT NULL
+  applied_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbOfferRow {
+  id: string; // uuid NOT NULL
+  student_id: string; // uuid NOT NULL
+  drive_id: string; // uuid NOT NULL
+  company_id: string; // uuid NOT NULL
+  package_lpa: number; // numeric NOT NULL
+  status: string; // text NOT NULL
+  offer_date?: string | null;
+  created_at?: string | null;
+}
+
+export interface DbProfileRow {
+  id: string; // uuid NOT NULL
+  email: string;
+  role: string;
+  student_id: string | null;
+  company_id: string | null;
+  created_at?: string | null;
+}
+
+/**
+ * FRONTEND VIEW MODELS
+ */
 export interface UserProfile {
   id: string; // auth.users UUID
   email: string;

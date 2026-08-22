@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { supabase } from '../../lib/supabase';
+import { supabase, fetchCompaniesFromSupabase } from '../../lib/supabase';
 import {
   Building2,
   Search,
@@ -50,7 +50,7 @@ export const CompaniesPage: React.FC = () => {
     }
   }, [contextCompanies]);
 
-  // Fetch companies directly from Supabase 'companies' table with fallback
+  // Fetch companies directly using authoritative schema service
   const fetchSupabaseCompanies = async (showLoadingState = true) => {
     if (!supabase) {
       setIsOfflineFallback(true);
@@ -65,79 +65,16 @@ export const CompaniesPage: React.FC = () => {
     }
 
     try {
-      // Query the companies table
-      const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        // Fallback to unordered select if created_at does not exist
-        const fallback = await supabase.from('companies').select('*');
-        if (fallback.error) {
-          console.warn('Notice querying Supabase companies table (using local cache):', fallback.error.message);
-          setIsOfflineFallback(true);
-          setCompanies(contextCompanies || []);
-          return;
-        }
-
-        if (fallback.data && fallback.data.length > 0) {
-          const mapped: Company[] = fallback.data.map((row: any) => ({
-            id: String(row.id),
-            name: row.company_name || row.name || 'Unnamed Company',
-            company_name: row.company_name || row.name || 'Unnamed Company',
-            industry: row.industry || 'Technology',
-            tier: (row.tier as CompanyTier) || 'Dream',
-            openDrivesCount: parseInt(row.open_drives_count || row.openDrivesCount, 10) || 0,
-            averagePackage: parseFloat(row.average_package || row.averagePackage) || 0,
-            minPackage: parseFloat(row.min_package || row.minPackage) || 0,
-            maxPackage: parseFloat(row.max_package || row.maxPackage) || 0,
-            status: row.status || 'Active',
-            website: row.website || '',
-            location: row.location || '',
-            contactPerson: row.contact_name || row.contact_person || row.contactPerson || '',
-            contactEmail: row.contact_email || row.contactEmail || '',
-            contactPhone: row.contact_phone || row.contactPhone || row.phone || '',
-            totalHiredHistory: parseInt(row.total_hired_history || row.totalHiredHistory, 10) || 0,
-            logo: row.logo || '',
-            created_at: row.created_at
-          }));
-          setCompanies(mapped);
-          setIsOfflineFallback(false);
-          return;
-        }
-      }
-
-      if (data && data.length > 0) {
-        const mapped: Company[] = data.map((row: any) => ({
-          id: String(row.id),
-          name: row.company_name || row.name || 'Unnamed Company',
-          company_name: row.company_name || row.name || 'Unnamed Company',
-          industry: row.industry || 'Technology',
-          tier: (row.tier as CompanyTier) || 'Dream',
-          openDrivesCount: parseInt(row.open_drives_count || row.openDrivesCount, 10) || 0,
-          averagePackage: parseFloat(row.average_package || row.averagePackage) || 0,
-          minPackage: parseFloat(row.min_package || row.minPackage) || 0,
-          maxPackage: parseFloat(row.max_package || row.maxPackage) || 0,
-          status: row.status || 'Active',
-          website: row.website || '',
-          location: row.location || '',
-          contactPerson: row.contact_name || row.contact_person || row.contactPerson || '',
-          contactEmail: row.contact_email || row.contactEmail || '',
-          contactPhone: row.contact_phone || row.contactPhone || row.phone || '',
-          totalHiredHistory: parseInt(row.total_hired_history || row.totalHiredHistory, 10) || 0,
-          logo: row.logo || '',
-          created_at: row.created_at
-        }));
-        setCompanies(mapped);
+      const res = await fetchCompaniesFromSupabase();
+      if (res.data && res.data.length > 0) {
+        setCompanies(res.data);
         setIsOfflineFallback(false);
       } else {
-        // Table is empty or not yet seeded - use local cache
         setCompanies(contextCompanies || []);
         setIsOfflineFallback(false);
       }
     } catch (err: any) {
-      console.warn('Supabase fetch notice (operating with local state):', err?.message || err);
+      console.warn('Notice loading companies:', err?.message || err);
       setIsOfflineFallback(true);
       setCompanies(contextCompanies || []);
     } finally {
@@ -173,22 +110,15 @@ export const CompaniesPage: React.FC = () => {
 
   // Delete company handler
   const handleDeleteCompany = async (comp: Company) => {
-    if (!confirm(`Are you sure you want to delete company "${comp.name}"?`)) {
+    if (!confirm(`Are you sure you want to delete company "${comp.name || comp.company_name}"?`)) {
       return;
     }
 
-    // Always delete from local state and AppContext first
-    deleteCompany(comp.id);
-    setCompanies(prev => prev.filter(c => c.id !== comp.id));
-    addToast('Company Removed', `"${comp.name}" was removed from the directory.`, 'info');
-
-    // Attempt remote Supabase deletion if connected
-    if (supabase) {
-      try {
-        await supabase.from('companies').delete().eq('id', comp.id);
-      } catch (err) {
-        console.warn('Notice: Remote Supabase company deletion deferred:', err);
-      }
+    try {
+      await deleteCompany(comp.id);
+      setCompanies(prev => prev.filter(c => c.id !== comp.id));
+    } catch (err: any) {
+      console.error('Failed to delete company:', err);
     }
   };
 

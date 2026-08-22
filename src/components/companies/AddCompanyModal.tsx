@@ -44,22 +44,26 @@ export const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ isOpen, onClos
     }
 
     try {
-      // Clean payload matching exact database column names for Supabase 'companies' table
-      // (Omit client-side ID so Supabase auto-generates a valid UUID)
       const companyPayload = {
+        name: trimmedName,
         company_name: trimmedName,
         industry: industry.trim(),
         tier,
         status,
-        min_package: parseFloat(minPackage) || 0,
-        max_package: parseFloat(maxPackage) || 0,
+        averagePackage: parseFloat(averagePackage) || 0,
+        minPackage: parseFloat(minPackage) || 0,
+        maxPackage: parseFloat(maxPackage) || 0,
         website: website.trim(),
+        location: location.trim(),
+        contactPerson: contactPerson.trim(),
         contact_person: contactPerson.trim(),
         contact_name: contactPerson.trim(),
+        contactEmail: contactEmail.trim(),
         contact_email: contactEmail.trim(),
+        contactPhone: contactPhone.trim(),
         contact_phone: contactPhone.trim(),
-        open_drives_count: 0,
-        total_hired_history: 0,
+        openDrivesCount: 0,
+        totalHiredHistory: 0,
         logo: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=128&auto=format&fit=crop&q=80'
       };
 
@@ -73,8 +77,8 @@ export const AddCompanyModal: React.FC<AddCompanyModalProps> = ({ isOpen, onClos
       setName('');
       onClose();
     } catch (err: any) {
-      console.warn('Notice adding company:', err?.message || err);
-      setErrorMessage(err?.message || 'Failed to add company');
+      console.error('Failed to add company:', err?.message || err);
+      setErrorMessage(err?.message || 'Failed to add company to database.');
     } finally {
       setIsSubmitting(false);
     }
