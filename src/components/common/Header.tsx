@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { SupabaseModal } from '../database/SupabaseModal';
 import {
@@ -58,6 +58,35 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
   const [showSupabaseModal, setShowSupabaseModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const roleDropdownRef = useRef<HTMLDivElement>(null);
+  const studentDropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        userDropdownRef.current && !userDropdownRef.current.contains(target) &&
+        roleDropdownRef.current && !roleDropdownRef.current.contains(target)
+      ) {
+        setShowUserDropdown(false);
+      }
+      if (studentDropdownRef.current && !studentDropdownRef.current.contains(target)) {
+        setShowStudentDropdown(false);
+      }
+      if (notificationsDropdownRef.current && !notificationsDropdownRef.current.contains(target)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const activeDrivesCount = drives.filter(d => d.status === 'Active' || d.status === 'Ongoing').length;
 
@@ -163,76 +192,39 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
           )}
 
           {/* Authenticated Role Badge */}
-          <div className="relative">
+          <div className="relative" ref={roleDropdownRef}>
             <button
               id="role-badge-btn"
-              onClick={() => setShowUserDropdown(prev => !prev)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-2xs transition-all ${currentRoleInfo.color}`}
+              onClick={() => {
+                setShowUserDropdown(prev => !prev);
+                setShowStudentDropdown(false);
+                setShowNotifications(false);
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-2xs transition-all cursor-pointer ${currentRoleInfo.color}`}
               title="Authenticated User Session"
+              aria-expanded={showUserDropdown}
+              aria-haspopup="true"
             >
               <RoleIcon className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{currentRoleInfo.label}</span>
               <ChevronDown className="w-3 h-3 opacity-70" />
             </button>
-
-            {showUserDropdown && (
-              <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95">
-                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signed in as</div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
-                    {userProfile?.email || currentUser?.email || 'Authenticated User'}
-                  </div>
-                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">
-                    Role: {userProfile?.role || currentRole}
-                  </div>
-                </div>
-
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setShowUserDropdown(false);
-                      setShowProfileModal(true);
-                    }}
-                    className="w-full px-3 py-2 flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <User className="w-4 h-4 text-slate-400" />
-                    <span>Account Details</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowUserDropdown(false);
-                      setShowSupabaseModal(true);
-                    }}
-                    className="w-full px-3 py-2 flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    <Database className="w-4 h-4 text-emerald-500" />
-                    <span>Database Status</span>
-                  </button>
-                </div>
-
-                <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <button
-                    id="header-logout-btn"
-                    onClick={handleLogout}
-                    className="w-full px-3 py-2 flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                  >
-                    <LogOut className="w-4 h-4 text-rose-500" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* If Admin: can switch preview student for diagnostics */}
           {currentRole === 'admin' && (
-            <div className="relative hidden md:block">
+            <div className="relative hidden md:block" ref={studentDropdownRef}>
               <button
                 id="active-student-switcher"
-                onClick={() => setShowStudentDropdown(prev => !prev)}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-700 dark:text-slate-200 hover:border-slate-300"
+                onClick={() => {
+                  setShowStudentDropdown(prev => !prev);
+                  setShowUserDropdown(false);
+                  setShowNotifications(false);
+                }}
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-700 dark:text-slate-200 hover:border-slate-300 cursor-pointer"
                 title="Inspect student view"
+                aria-expanded={showStudentDropdown}
+                aria-haspopup="true"
               >
                 <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold">
                   {activeStudent?.name?.charAt(0) || 'S'}
@@ -242,7 +234,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
               </button>
 
               {showStudentDropdown && (
-                <div className="absolute right-0 mt-2 w-72 max-h-72 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-2 z-50">
+                <div className="absolute right-0 top-full mt-2 w-72 max-h-72 overflow-y-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-2 z-50">
                   <div className="px-3 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     Inspect Student Profile
                   </div>
@@ -273,20 +265,26 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
           )}
 
           {/* Notifications button */}
-          <div className="relative">
+          <div className="relative" ref={notificationsDropdownRef}>
             <button
               id="notifications-button"
-              onClick={() => setShowNotifications(prev => !prev)}
-              className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative"
+              onClick={() => {
+                setShowNotifications(prev => !prev);
+                setShowUserDropdown(false);
+                setShowStudentDropdown(false);
+              }}
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors relative cursor-pointer"
               title="Notifications"
               aria-label="Notifications"
+              aria-expanded={showNotifications}
+              aria-haspopup="true"
             >
               <Bell className="w-4 h-4" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500"></span>
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-3 z-50 animate-in fade-in">
+              <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-3 z-50 animate-in fade-in">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                   <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Recent Notifications</span>
                   <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold">3 Unread</span>
@@ -343,20 +341,79 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
             {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
 
-          {/* Profile & About Modal Trigger */}
-          <button
-            id="user-profile-button"
-            onClick={() => setShowProfileModal(true)}
-            className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-200 transition-colors"
-            title="View User Profile & TPC Metadata"
-          >
-            <div className="w-6 h-6 rounded-full bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
-              {currentRole === 'student' ? (activeStudent?.name?.charAt(0) || 'S') : 'AD'}
-            </div>
-            <span className="font-semibold hidden sm:inline text-xs">
-              {currentRole === 'student' ? (activeStudent?.name?.split(' ')[0] || 'Student') : 'Administrator'}
-            </span>
-          </button>
+          {/* User Profile Button & Dropdown Trigger */}
+          <div className="relative" ref={userDropdownRef}>
+            <button
+              id="user-profile-button"
+              onClick={() => {
+                setShowUserDropdown(prev => !prev);
+                setShowStudentDropdown(false);
+                setShowNotifications(false);
+              }}
+              className="flex items-center gap-2 p-1 pl-1.5 pr-2.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+              title="View User Profile & Session"
+              aria-expanded={showUserDropdown}
+              aria-haspopup="true"
+            >
+              <div className="w-6 h-6 rounded-full bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center font-bold text-xs">
+                {currentRole === 'student' ? (activeStudent?.name?.charAt(0) || 'S') : 'AD'}
+              </div>
+              <span className="font-semibold hidden sm:inline text-xs">
+                {currentRole === 'student' ? (activeStudent?.name?.split(' ')[0] || 'Student') : 'Administrator'}
+              </span>
+              <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Profile & Session Dropdown Menu */}
+            {showUserDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl py-2 z-50 animate-in fade-in zoom-in-95">
+                <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Signed in as</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
+                    {userProfile?.email || currentUser?.email || 'Authenticated User'}
+                  </div>
+                  <div className="mt-1 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">
+                    Role: {userProfile?.role || currentRole}
+                  </div>
+                </div>
+
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      setShowProfileModal(true);
+                    }}
+                    className="w-full px-3 py-2 flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <User className="w-4 h-4 text-slate-400" />
+                    <span>Account Details</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false);
+                      setShowSupabaseModal(true);
+                    }}
+                    className="w-full px-3 py-2 flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <Database className="w-4 h-4 text-emerald-500" />
+                    <span>Database Status</span>
+                  </button>
+                </div>
+
+                <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
+                  <button
+                    id="header-logout-btn"
+                    onClick={handleLogout}
+                    className="w-full px-3 py-2 flex items-center gap-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="w-4 h-4 text-rose-500" />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Mobile Menu Drawer Toggle Button */}
           {onOpenMobileDrawer && (

@@ -112,10 +112,10 @@ const AppContent: React.FC = () => {
         onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)}
       />
 
-      <div className="flex flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 gap-6 pb-24 lg:pb-8 items-start relative">
+      <div className="flex flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 gap-6 pb-24 lg:pb-8 items-start relative z-0">
         <Sidebar onOpenCreateDrive={handleOpenCreateDrive} />
 
-        <main id="primary-app-main-view" className="flex-1 min-w-0 w-full relative">
+        <main id="primary-app-main-view" className="flex-1 min-w-0 w-full relative z-10">
           {currentView === 'dashboard' && <AdminDashboard onOpenCreateDrive={handleOpenCreateDrive} />}
           {currentView === 'students' && <StudentsPage />}
           {currentView === 'companies' && <CompaniesPage />}

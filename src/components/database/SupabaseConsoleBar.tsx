@@ -107,7 +107,7 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
       <>
         <aside
           aria-label="Supabase Database Live Console Minimized"
-          className={`sticky top-16 sm:top-20 z-50 transition-all duration-300 drop-shadow-2xl ${className}`}
+          className={`sticky top-16 sm:top-20 z-20 transition-all duration-300 drop-shadow-2xl ${className}`}
         >
           <div className="bg-slate-950/95 text-slate-100 rounded-2xl border border-slate-700/90 shadow-2xl shadow-black/90 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3 ring-1 ring-white/15">
             <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
@@ -161,7 +161,7 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
     <>
       <aside
         aria-label="Supabase Database Live Console"
-        className={`sticky top-16 sm:top-20 z-50 w-full transition-all duration-300 drop-shadow-2xl ${className}`}
+        className={`sticky top-16 sm:top-20 z-20 w-full transition-all duration-300 drop-shadow-2xl ${className}`}
       >
         <div className="bg-slate-950/95 text-slate-100 rounded-2xl border border-slate-700/90 shadow-2xl shadow-black/90 backdrop-blur-xl overflow-hidden transition-all duration-300 ring-1 ring-white/15">
           {/* Main Top Bar */}
