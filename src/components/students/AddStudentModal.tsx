@@ -22,7 +22,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
   const [placementStatus, setPlacementStatus] = useState<PlacementStatus>('Unplaced');
   const [graduationYear, setGraduationYear] = useState<number>(2026);
   const [skillsInput, setSkillsInput] = useState('React, Python, SQL');
-  const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>('Male');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

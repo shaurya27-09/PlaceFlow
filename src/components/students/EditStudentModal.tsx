@@ -23,7 +23,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ isOpen, stud
   const [placementStatus, setPlacementStatus] = useState<PlacementStatus>('Unplaced');
   const [graduationYear, setGraduationYear] = useState<number>(2026);
   const [skillsInput, setSkillsInput] = useState('');
-  const [gender, setGender] = useState<'Male' | 'Female' | 'Other'>('Male');
+  const [gender, setGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -40,7 +40,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ isOpen, stud
       setPlacementStatus(student.placementStatus || 'Unplaced');
       setGraduationYear(student.graduationYear || 2026);
       setSkillsInput((student.skills || []).join(', '));
-      setGender((student.gender as any) || 'Male');
+      setGender((student.gender as any) || '');
       setErrorMessage(null);
     }
   }, [student]);

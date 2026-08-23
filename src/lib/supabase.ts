@@ -849,16 +849,17 @@ export async function addStudentToSupabase(student: Student | Partial<Student>):
   // enrollment_no, full_name, email, branch, cgpa, backlogs, attendance, graduation_year, placement_status
   // (Do not manually send id, avatar, created_by, or created_at when Supabase/database generates them)
   const payload: StudentDbInsert = {
-    enrollment_no: student.enrollmentNumber || (student as any).enrollment_no || null,
-    full_name: student.name || (student as any).full_name || 'Student',
-    email: student.email || null,
-    branch: student.branch || 'CSE',
-    cgpa: typeof student.cgpa === 'number' ? student.cgpa : (parseFloat(String(student.cgpa || 0)) || 0),
-    backlogs: typeof student.backlogs === 'number' ? student.backlogs : (parseInt(String(student.backlogs || 0), 10) || 0),
-    attendance: typeof student.attendance === 'number' ? student.attendance : (parseInt(String(student.attendance || 100), 10) || 100),
-    graduation_year: typeof student.graduationYear === 'number' ? student.graduationYear : (parseInt(String((student as any).graduation_year || 2026), 10) || 2026),
-    placement_status: student.placementStatus || (student as any).placement_status || 'Unplaced'
-  };
+  enrollment_no: student.enrollmentNumber || (student as any).enrollment_no || null,
+  full_name: student.name || (student as any).full_name || 'Student',
+  email: student.email || null,
+  branch: student.branch || 'CSE',
+  cgpa: typeof student.cgpa === 'number' ? student.cgpa : (parseFloat(String(student.cgpa || 0)) || 0),
+  backlogs: typeof student.backlogs === 'number' ? student.backlogs : (parseInt(String(student.backlogs || 0), 10) || 0),
+  attendance: typeof student.attendance === 'number' ? student.attendance : (parseInt(String(student.attendance || 100), 10) || 100),
+  graduation_year: typeof student.graduationYear === 'number' ? student.graduationYear : (parseInt(String((student as any).graduation_year || 2026), 10) || 2026),
+  placement_status: student.placementStatus || (student as any).placement_status || 'Unplaced',
+  gender: (student as any).gender || null
+};
 
   try {
     const { data, error } = await supabase
@@ -909,11 +910,16 @@ export async function updateStudentInSupabase(id: string, partial: Partial<Stude
   if (partial.graduationYear !== undefined || partial.graduation_year !== undefined) {
     payload.graduation_year = typeof partial.graduationYear === 'number' ? partial.graduationYear : (parseInt(String(partial.graduation_year || 2026), 10) || 2026);
   }
-  if (partial.placementStatus !== undefined || partial.placement_status !== undefined) {
-    payload.placement_status = partial.placement_status || partial.placementStatus || 'Unplaced';
-  }
+ if (partial.placementStatus !== undefined || partial.placement_status !== undefined) { 
+  payload.placement_status = partial.placement_status || partial.placementStatus || 'Unplaced'; 
+}
 
-  if (Object.keys(payload).length === 0) {
+// ADD THIS
+if ((partial as any).gender !== undefined) {
+  (payload as any).gender = (partial as any).gender || null;
+}
+ 
+if (Object.keys(payload).length === 0) { 
     return { success: true };
   }
 
