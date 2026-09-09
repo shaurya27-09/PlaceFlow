@@ -765,7 +765,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           attendance: typeof res.data.attendance === 'number' ? res.data.attendance : studentData.attendance,
           graduationYear: typeof res.data.graduation_year === 'number' ? res.data.graduation_year : studentData.graduationYear,
           placementStatus: (res.data.placement_status as any) || studentData.placementStatus,
-          gender: res.data.gender || studentData.gender || '',
+          gender: ((res.data.gender || studentData.gender) as 'Male' | 'Female' | 'Other' | undefined),
           offers: []
         };
         setStudents(prev => [savedStudent, ...prev]);

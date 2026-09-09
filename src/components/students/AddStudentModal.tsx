@@ -54,7 +54,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
         placementStatus,
         graduationYear: Number(graduationYear),
         skills: skills.length > 0 ? skills : ['DSA', 'Python', 'C++'],
-        gender
+        gender: gender || undefined
       });
 
       // Reset and close on success

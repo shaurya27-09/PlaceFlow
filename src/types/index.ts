@@ -26,6 +26,7 @@ export interface DbStudentRow {
   attendance: number | null;
   graduation_year: number | null;
   placement_status: string | null;
+  gender?: string | null;
   created_at?: string | null;
 }
 
@@ -39,6 +40,7 @@ export interface StudentDbInsert {
   attendance: number | null;
   graduation_year: number | null;
   placement_status: string;
+  gender?: string | null;
 }
 
 export interface DbCompanyRow {

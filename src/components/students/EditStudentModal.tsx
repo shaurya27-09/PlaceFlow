@@ -73,7 +73,7 @@ export const EditStudentModal: React.FC<EditStudentModalProps> = ({ isOpen, stud
         placementStatus,
         graduationYear: Number(graduationYear),
         skills: skills.length > 0 ? skills : ['DSA', 'Python', 'C++'],
-        gender
+        gender: gender || undefined
       });
 
       onClose();
