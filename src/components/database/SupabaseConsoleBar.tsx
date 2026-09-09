@@ -53,17 +53,21 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [latencyMs, setLatencyMs] = useState<number | null>(48);
   const [isTesting, setIsTesting] = useState(false);
-  const [consoleLogs, setConsoleLogs] = useState<Array<{ timestamp: string; type: 'info' | 'success' | 'warn' | 'query'; message: string }>>([
-    { timestamp: new Date().toLocaleTimeString(), type: 'info', message: 'Supabase client initialized with endpoint https://plwsickyaxdkjultrlca.supabase.co' },
-    { timestamp: new Date().toLocaleTimeString(), type: 'success', message: 'Realtime channel [placement_drives, offers, students] subscribed' },
-    { timestamp: new Date().toLocaleTimeString(), type: 'query', message: 'SELECT * FROM public.placement_drives joined with companies: OK' },
-    { timestamp: new Date().toLocaleTimeString(), type: 'query', message: 'SELECT * FROM public.offers (Schema aligned): OK' }
-  ]);
-
   const creds = getSupabaseCredentials();
   const maskedUrl = creds.url
     ? creds.url.replace(/^https?:\/\//, '').replace(/\.supabase\.co.*$/, '.supabase.co')
-    : 'https://plwsickyaxdkjultrlca.supabase.co';
+    : 'Local Storage Mode';
+
+  const [consoleLogs, setConsoleLogs] = useState<Array<{ timestamp: string; type: 'info' | 'success' | 'warn' | 'query'; message: string }>>([
+    {
+      timestamp: new Date().toLocaleTimeString(),
+      type: 'info',
+      message: creds.url
+        ? `Supabase client configured with endpoint ${creds.url}`
+        : 'PlaceFlow operational in local reactive mode. Connect Supabase to enable cloud persistence.'
+    },
+    { timestamp: new Date().toLocaleTimeString(), type: 'info', message: 'Local schema [students, placement_drives, offers, companies] ready' }
+  ]);
 
   const addConsoleLog = (type: 'info' | 'success' | 'warn' | 'query', message: string) => {
     setConsoleLogs(prev => [

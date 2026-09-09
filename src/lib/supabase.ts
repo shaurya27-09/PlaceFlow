@@ -24,26 +24,32 @@ import {
   DbProfileRow
 } from '../types';
 
-// Default project URL as specified
-export const DEFAULT_SUPABASE_URL = 'https://plwsickyaxdkjultrlca.supabase.co';
-export const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsd3NpY2t5YXhka2p1bHRybGNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEyMzg2NjYsImV4cCI6MjA1NjgxNDY2Nn0.8mbX-iQ51g28y13l2q3j9k8h0g9f8e7d6c5b4a3z2y1';
+// Canonical Supabase Project URL (plwslckyaxdkjultrlca)
+export const DEFAULT_SUPABASE_URL = 'https://plwslckyaxdkjultrlca.supabase.co';
 
 // Read configuration from environment variables and browser storage
 const viteSupabaseUrl = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.SUPABASE_URL)) ||
-  (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL)) || '';
+  (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL)) || DEFAULT_SUPABASE_URL;
 const viteSupabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.SUPABASE_ANON_KEY)) ||
   (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_ANON_KEY || process.env?.SUPABASE_ANON_KEY)) || '';
 
+export const DEFAULT_SUPABASE_ANON_KEY = viteSupabaseAnonKey;
+
 // Required debugging log (Supabase URL only, anon key is NEVER logged)
-console.log("Supabase URL:", (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) || viteSupabaseUrl || DEFAULT_SUPABASE_URL);
+console.log("Supabase URL:", viteSupabaseUrl || DEFAULT_SUPABASE_URL);
 
 /**
  * Normalizes and cleans Supabase Project URLs
  * Handles trailing slashes, dashboard URLs, missing https://, etc.
+ * Also auto-corrects legacy typo ('plwsicky' -> 'plwslcky')
  */
 export function normalizeSupabaseUrl(rawUrl: string): string {
   if (!rawUrl) return DEFAULT_SUPABASE_URL;
   let url = rawUrl.trim();
+  // Auto-correct typo from original repository
+  if (url.includes('plwsickyaxdkjultrlca')) {
+    url = url.replace('plwsickyaxdkjultrlca', 'plwslckyaxdkjultrlca');
+  }
   const dashMatch = url.match(/(?:supabase\.com\/dashboard\/project|app\.supabase\.com\/project)\/([a-z0-9_-]+)/i);
   if (dashMatch && dashMatch[1]) {
     return `https://${dashMatch[1]}.supabase.co`;
@@ -62,6 +68,16 @@ export function getSupabaseCredentials(): { url: string; anonKey: string } {
     if (typeof localStorage !== 'undefined') {
       storedUrl = (localStorage.getItem('placeflow_supabase_url') || '').trim();
       storedAnonKey = (localStorage.getItem('placeflow_supabase_anon_key') || '').trim();
+
+      // Auto-migrate legacy typo in browser storage
+      if (storedUrl.includes('plwsickyaxdkjultrlca')) {
+        storedUrl = storedUrl.replace('plwsickyaxdkjultrlca', 'plwslckyaxdkjultrlca');
+        localStorage.setItem('placeflow_supabase_url', storedUrl);
+      }
+      if (storedAnonKey.includes('8mbX-iQ51g28y13l2q3j9k8h0g9f8e7d6c5b4a3z2y1')) {
+        localStorage.removeItem('placeflow_supabase_anon_key');
+        storedAnonKey = '';
+      }
     }
   } catch (_) {}
 
@@ -96,20 +112,6 @@ export function clearSupabaseCredentials(): void {
   } catch (_) {}
 }
 
-const initialCreds = getSupabaseCredentials();
-export const supabaseUrl: string = initialCreds.url;
-export const supabaseAnonKey: string = initialCreds.anonKey;
-
-export const isSupabaseConfigured: boolean = Boolean(
-  supabaseUrl &&
-  supabaseAnonKey &&
-  supabaseUrl.startsWith('http') &&
-  !supabaseUrl.includes('placeholder') &&
-  !supabaseUrl.includes('MY_APP_URL') &&
-  !supabaseAnonKey.includes('placeholder') &&
-  supabaseAnonKey.length > 10
-);
-
 export function checkIsSupabaseConfigured(): boolean {
   const creds = getSupabaseCredentials();
   return Boolean(
@@ -118,10 +120,17 @@ export function checkIsSupabaseConfigured(): boolean {
     creds.url.startsWith('http') &&
     !creds.url.includes('placeholder') &&
     !creds.url.includes('MY_APP_URL') &&
+    !creds.url.includes('plwsickyaxdkjultrlca') &&
     !creds.anonKey.includes('placeholder') &&
-    creds.anonKey.length > 10
+    !creds.anonKey.includes('8mbX-iQ51g28y13l2q3j9k8h0g9f8e7d6c5b4a3z2y1') &&
+    creds.anonKey.length > 15
   );
 }
+
+const initialCreds = getSupabaseCredentials();
+export const supabaseUrl: string = initialCreds.url;
+export const supabaseAnonKey: string = initialCreds.anonKey;
+export const isSupabaseConfigured: boolean = checkIsSupabaseConfigured();
 
 /**
  * Helper to ensure any response body returned to @supabase/supabase-js is strictly valid JSON.
@@ -226,7 +235,7 @@ async function resilientSupabaseFetch(input: RequestInfo | URL, init?: RequestIn
     const resp = await fetch(input, init);
     return await ensureJsonResponse(resp, urlStr);
   } catch (browserFetchErr: any) {
-    console.error('[Supabase Network Error]', {
+    console.warn('[Supabase Network Notice]', {
       url: urlStr,
       method,
       operation: 'Direct Supabase Fetch',
@@ -445,20 +454,20 @@ export async function fetchAllFromSupabase(): Promise<{
       supabase.from('offers').select('*')
     ]);
 
-    if (studentsRes.status === 'rejected') console.error('Supabase query error for students table:', studentsRes.reason);
-    else if (studentsRes.value.error) console.error('Supabase query error for students table:', studentsRes.value.error);
+    if (studentsRes.status === 'rejected') console.warn('Supabase query notice for students table:', studentsRes.reason);
+    else if (studentsRes.value.error) console.warn('Supabase query notice for students table:', studentsRes.value.error);
 
-    if (companiesRes.status === 'rejected') console.error('Supabase query error for companies table:', companiesRes.reason);
-    else if (companiesRes.value.error) console.error('Supabase query error for companies table:', companiesRes.value.error);
+    if (companiesRes.status === 'rejected') console.warn('Supabase query notice for companies table:', companiesRes.reason);
+    else if (companiesRes.value.error) console.warn('Supabase query notice for companies table:', companiesRes.value.error);
 
-    if (drivesRes.status === 'rejected') console.error('Supabase query error for placement_drives table:', drivesRes.reason);
-    else if (drivesRes.value.error) console.error('Supabase query error for placement_drives table:', drivesRes.value.error);
+    if (drivesRes.status === 'rejected') console.warn('Supabase query notice for placement_drives table:', drivesRes.reason);
+    else if (drivesRes.value.error) console.warn('Supabase query notice for placement_drives table:', drivesRes.value.error);
 
-    if (applicationsRes.status === 'rejected') console.error('Supabase query error for applications table:', applicationsRes.reason);
-    else if (applicationsRes.value.error) console.error('Supabase query error for applications table:', applicationsRes.value.error);
+    if (applicationsRes.status === 'rejected') console.warn('Supabase query notice for applications table:', applicationsRes.reason);
+    else if (applicationsRes.value.error) console.warn('Supabase query notice for applications table:', applicationsRes.value.error);
 
-    if (offersRes.status === 'rejected') console.error('Supabase query error for offers table:', offersRes.reason);
-    else if (offersRes.value.error) console.error('Supabase query error for offers table:', offersRes.value.error);
+    if (offersRes.status === 'rejected') console.warn('Supabase query notice for offers table:', offersRes.reason);
+    else if (offersRes.value.error) console.warn('Supabase query notice for offers table:', offersRes.value.error);
 
     const result: {
       students?: Student[];

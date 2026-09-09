@@ -1,5 +1,8 @@
-const DEFAULT_SUPABASE_URL = 'https://plwsickyaxdkjultrlca.supabase.co';
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const DEFAULT_SUPABASE_URL = 'https://plwslckyaxdkjultrlca.supabase.co';
+const rawSupabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseUrl = rawSupabaseUrl.includes('plwsickyaxdkjultrlca')
+  ? rawSupabaseUrl.replace('plwsickyaxdkjultrlca', 'plwslckyaxdkjultrlca')
+  : rawSupabaseUrl;
 
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {

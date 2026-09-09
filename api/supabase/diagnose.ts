@@ -1,7 +1,10 @@
 import dns from 'dns';
 
-const DEFAULT_SUPABASE_URL = 'https://plwsickyaxdkjultrlca.supabase.co';
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const DEFAULT_SUPABASE_URL = 'https://plwslckyaxdkjultrlca.supabase.co';
+const rawSupabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseUrl = rawSupabaseUrl.includes('plwsickyaxdkjultrlca')
+  ? rawSupabaseUrl.replace('plwsickyaxdkjultrlca', 'plwslckyaxdkjultrlca')
+  : rawSupabaseUrl;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
 
 export default async function handler(req: any, res: any) {
@@ -61,12 +64,12 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    const restEndpoint = `${cleanUrl}/rest/v1/`;
+    const restEndpoint = `${cleanUrl}/rest/v1/students?select=id&limit=1`;
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-      const resp = await fetch(restEndpoint, {
+      let resp = await fetch(restEndpoint, {
         method: 'GET',
         headers: {
           apikey: rawKey,
@@ -75,6 +78,19 @@ export default async function handler(req: any, res: any) {
         },
         signal: controller.signal
       });
+
+      // If students table is not accessible or doesn't exist, check root
+      if (resp.status === 404) {
+        resp = await fetch(`${cleanUrl}/rest/v1/`, {
+          method: 'GET',
+          headers: {
+            apikey: rawKey,
+            Authorization: `Bearer ${rawKey}`,
+            'User-Agent': 'PlaceFlow-Diagnostic/1.0'
+          },
+          signal: controller.signal
+        });
+      }
       clearTimeout(timeoutId);
 
       if (resp.status === 401 || resp.status === 403) {

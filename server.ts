@@ -25,10 +25,13 @@ function getGeminiClient(): GoogleGenAI | null {
 }
 
 // Initialize Supabase Client on server if configured
-const DEFAULT_SUPABASE_URL = 'https://plwsickyaxdkjultrlca.supabase.co';
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const DEFAULT_SUPABASE_URL = 'https://plwslckyaxdkjultrlca.supabase.co';
+const rawSupabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseUrl = rawSupabaseUrl.includes('plwsickyaxdkjultrlca')
+  ? rawSupabaseUrl.replace('plwsickyaxdkjultrlca', 'plwslckyaxdkjultrlca')
+  : rawSupabaseUrl;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '';
-const supabaseServerClient = (supabaseUrl && supabaseAnonKey)
+const supabaseServerClient = (supabaseUrl && supabaseAnonKey && supabaseAnonKey.length > 15)
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
@@ -104,12 +107,12 @@ async function startServer() {
       }
 
       // 2. HTTP Ping to Supabase REST endpoint
-      const restEndpoint = `${cleanUrl}/rest/v1/`;
+      const restEndpoint = `${cleanUrl}/rest/v1/students?select=id&limit=1`;
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        const resp = await fetch(restEndpoint, {
+        let resp = await fetch(restEndpoint, {
           method: 'GET',
           headers: {
             apikey: rawKey,
@@ -118,6 +121,18 @@ async function startServer() {
           },
           signal: controller.signal
         });
+
+        if (resp.status === 404) {
+          resp = await fetch(`${cleanUrl}/rest/v1/`, {
+            method: 'GET',
+            headers: {
+              apikey: rawKey,
+              Authorization: `Bearer ${rawKey}`,
+              'User-Agent': 'PlaceFlow-Diagnostic/1.0'
+            },
+            signal: controller.signal
+          });
+        }
         clearTimeout(timeoutId);
 
         if (resp.status === 401 || resp.status === 403) {
@@ -327,14 +342,13 @@ ${JSON.stringify(relevantContext, null, 2)}`;
       console.log("Gemini request starting");
 
       const CANDIDATE_MODELS = [
-        'gemini-3.6-flash',
-        'gemini-3.7-flash',
-        'gemini-3.5-flash',
-        'gemini-flash-latest'
+        'gemini-3.8-flash',
+        'gemini-flash-latest',
+        'gemini-3.1-flash-lite'
       ];
 
       let responseText = '';
-      let usedProvider = 'gemini-3.6-flash';
+      let usedProvider = 'gemini-3.8-flash';
 
       for (const modelName of CANDIDATE_MODELS) {
         try {
