@@ -18,7 +18,9 @@ import {
   Trash2,
   RefreshCw,
   Database,
-  AlertCircle
+  AlertCircle,
+  Send,
+  XCircle
 } from 'lucide-react';
 import { CreateDriveModal } from './CreateDriveModal';
 import { EditDriveModal } from './EditDriveModal';
@@ -30,8 +32,38 @@ export const DrivesPage: React.FC = () => {
     deleteDrive,
     setSelectedDriveForEligibility,
     setCurrentView,
-    getEligibleStudentsForDrive
+    getEligibleStudentsForDrive,
+    currentRole,
+    userProfile,
+    students,
+    applications,
+    applyToDrive,
+    evaluateEligibility,
+    checkOfferPolicy
   } = useApp();
+
+  const safeStudents = students || [];
+  const safeApplications = applications || [];
+  const profileStudent = (userProfile?.role === 'student')
+    ? (safeStudents.find(s => (userProfile.student_id && s.id === userProfile.student_id) || (userProfile.email && s.email?.toLowerCase() === userProfile.email.toLowerCase())) || null)
+    : null;
+
+  const [isApplyingDriveId, setIsApplyingDriveId] = useState<string | null>(null);
+
+  const handleApply = async (driveId: string) => {
+    if (currentRole !== 'student' || !profileStudent?.id) return;
+    if (isApplyingDriveId) return;
+
+    setIsApplyingDriveId(driveId);
+    try {
+      await applyToDrive(profileStudent.id, driveId);
+      await fetchSupabaseDrives();
+    } catch (err: any) {
+      console.error('Error applying to drive:', err);
+    } finally {
+      setIsApplyingDriveId(null);
+    }
+  };
 
   // Supabase real-time state
   const [supabaseDrives, setSupabaseDrives] = useState<PlacementDrive[] | null>(null);
@@ -158,14 +190,16 @@ export const DrivesPage: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
           </button>
 
-          <button
-            id="open-create-drive-modal-btn"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Create New Drive</span>
-          </button>
+          {currentRole !== 'student' && (
+            <button
+              id="open-create-drive-modal-btn"
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create New Drive</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -290,22 +324,26 @@ export const DrivesPage: React.FC = () => {
                       {drive.status}
                     </span>
 
-                    <button
-                      id={`edit-drive-${drive.id}`}
-                      title="Edit Drive"
-                      onClick={() => handleEditClick(drive)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      id={`delete-drive-${drive.id}`}
-                      title="Delete Drive"
-                      onClick={() => handleDeleteClick(drive)}
-                      className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {currentRole !== 'student' && (
+                      <>
+                        <button
+                          id={`edit-drive-${drive.id}`}
+                          title="Edit Drive"
+                          onClick={() => handleEditClick(drive)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          id={`delete-drive-${drive.id}`}
+                          title="Delete Drive"
+                          onClick={() => handleDeleteClick(drive)}
+                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -352,17 +390,80 @@ export const DrivesPage: React.FC = () => {
                 </span>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    id={`inspect-eligibility-${drive.id}`}
-                    onClick={() => {
-                      setSelectedDriveForEligibility(drive);
-                      setCurrentView('eligibility-results');
-                    }}
-                    className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1"
-                  >
-                    <span>Check Eligibility</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+                  {currentRole === 'student' ? (
+                    (() => {
+                      if (!profileStudent) return null;
+                      const evalRes = evaluateEligibility(profileStudent, drive);
+                      const policyRes = checkOfferPolicy(profileStudent, drive);
+                      const isEligible = evalRes.isEligible && !policyRes.blocked;
+                      const ineligibilityReasons = !evalRes.isEligible ? evalRes.reasons : (policyRes.blocked ? [policyRes.reason] : []);
+                      const hasApplied = safeApplications.some(a => a.studentId === profileStudent.id && a.driveId === drive.id);
+
+                      if (hasApplied) {
+                        return (
+                          <button
+                            type="button"
+                            id={`drives-page-applied-btn-${drive.id}`}
+                            disabled={true}
+                            className="px-3.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-90"
+                            title="You have already applied for this placement drive"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                            <span>Applied</span>
+                          </button>
+                        );
+                      }
+
+                      if (!isEligible) {
+                        return (
+                          <button
+                            type="button"
+                            id={`drives-page-not-eligible-btn-${drive.id}`}
+                            disabled={true}
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed border border-slate-200 dark:border-slate-700 flex items-center gap-1.5"
+                            title={ineligibilityReasons.join(', ') || 'You do not satisfy eligibility criteria for this placement drive.'}
+                          >
+                            <XCircle className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                            <span>Not Eligible</span>
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          type="button"
+                          id={`drives-page-apply-btn-${drive.id}`}
+                          disabled={isApplyingDriveId === drive.id}
+                          onClick={() => handleApply(drive.id)}
+                          className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+                        >
+                          {isApplyingDriveId === drive.id ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Applying...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-3.5 h-3.5" />
+                              <span>Apply Now</span>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })()
+                  ) : (
+                    <button
+                      id={`inspect-eligibility-${drive.id}`}
+                      onClick={() => {
+                        setSelectedDriveForEligibility(drive);
+                        setCurrentView('eligibility-results');
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Check Eligibility</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

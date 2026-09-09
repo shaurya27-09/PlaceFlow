@@ -2454,12 +2454,31 @@ export async function fetchUserProfile(userId: string): Promise<{ profile: UserP
       return { profile: null, error: 'Profile record not found in public.profiles' };
     }
 
+    let linkedStudentId: string | null = data.student_id ? String(data.student_id) : null;
+
+    // If role is student and student_id is not yet set in profiles, try linking by email in students table
+    if (!linkedStudentId && ((data.role || '').toLowerCase() === 'student' || data.email)) {
+      try {
+        const { data: stdMatch } = await client
+          .from('students')
+          .select('id')
+          .ilike('email', (data.email || '').trim())
+          .maybeSingle();
+        if (stdMatch?.id) {
+          linkedStudentId = String(stdMatch.id);
+          await client.from('profiles').update({ student_id: linkedStudentId }).eq('id', userId);
+        }
+      } catch (err) {
+        console.warn('Auto-link student by email notice:', err);
+      }
+    }
+
     const profile: UserProfile = {
       id: data.id,
       email: data.email || '',
       role: (data.role || 'student').toLowerCase() as UserRole,
-      student_id: (data.student_id && isValidUUID(data.student_id)) ? String(data.student_id) : null,
-      company_id: (data.company_id && isValidUUID(data.company_id)) ? String(data.company_id) : null,
+      student_id: linkedStudentId,
+      company_id: (data.company_id ? String(data.company_id) : null),
       created_at: data.created_at
     };
 

@@ -314,7 +314,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       id: authUser.id,
       email: authUser.email || '',
       role: determinedRole,
-      student_id: metaStudentId || matchedStudent?.id || (determinedRole === 'student' ? 'std-1' : null),
+      student_id: metaStudentId || matchedStudent?.id || null,
       company_id: metaCompanyId || (determinedRole === 'recruiter' ? 'comp-1' : null),
       created_at: new Date().toISOString()
     };
@@ -359,7 +359,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setUserProfile(profile);
             setCurrentRole(profile.role);
             if (profile.role === 'student') {
-              setActiveStudentId(profile.student_id || 'std-1');
+              setActiveStudentId(profile.student_id || null);
               setSelectedCompanyId(null);
               setCurrentView(prev => (prev === 'landing' || prev === 'login' ? 'student-portal' : prev));
             } else if (profile.role === 'recruiter') {
@@ -396,7 +396,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             setUserProfile(profile);
             setCurrentRole(profile.role);
             if (profile.role === 'student') {
-              setActiveStudentId(profile.student_id || 'std-1');
+              setActiveStudentId(profile.student_id || null);
               setSelectedCompanyId(null);
               setCurrentView('student-portal');
             } else if (profile.role === 'recruiter') {
@@ -1019,12 +1019,33 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Application Actions
   const applyToDrive = async (studentId: string, driveId: string): Promise<{ success: boolean; message: string }> => {
-    const student = students.find(s => s.id === studentId);
+    let student = students.find(s => s.id === studentId);
+    if (!student && userProfile?.role === 'student' && userProfile.email) {
+      student = students.find(s => s.email?.toLowerCase() === userProfile.email.toLowerCase());
+    }
     const drive = drives.find(d => d.id === driveId);
 
-    if (!student || !drive) {
-      addToast('Error', 'Student or drive record not found.', 'error');
-      return { success: false, message: 'Student or drive record not found.' };
+    if (!drive) {
+      addToast('Error', 'Placement drive record not found.', 'error');
+      return { success: false, message: 'Placement drive record not found.' };
+    }
+
+    if (!student) {
+      student = {
+        id: studentId,
+        name: userProfile?.email ? userProfile.email.split('@')[0] : 'Student',
+        enrollmentNumber: studentId,
+        email: userProfile?.email || '',
+        phone: '',
+        branch: 'CSE',
+        cgpa: 8.0,
+        backlogs: 0,
+        attendance: 85,
+        placementStatus: 'Unplaced',
+        offers: [],
+        graduationYear: 2026,
+        skills: []
+      };
     }
 
     // 1. Check if already applied (prevent duplicate applications)

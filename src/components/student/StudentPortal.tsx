@@ -46,7 +46,10 @@ export const StudentPortal: React.FC = () => {
     evaluateEligibility,
     checkOfferPolicy,
     setCurrentView,
-    addToast
+    addToast,
+    userProfile,
+    currentRole,
+    isAuthenticated
   } = useApp();
 
   const safeStudents = students || [];
@@ -54,7 +57,12 @@ export const StudentPortal: React.FC = () => {
   const safeApplications = applications || [];
   const safeOffers = offers || [];
 
-  const currentStudent = safeStudents.find(s => s.id === activeStudentId) || safeStudents[0];
+  // Determine current student: if authenticated student, use linked student record
+  const profileStudent = (userProfile?.role === 'student')
+    ? (safeStudents.find(s => (userProfile.student_id && s.id === userProfile.student_id) || (userProfile.email && s.email?.toLowerCase() === userProfile.email.toLowerCase())) || null)
+    : null;
+
+  const currentStudent = profileStudent || safeStudents.find(s => s.id === activeStudentId) || safeStudents[0];
 
   // Active view tab: 'drives' (Available Drives) or 'my-applications' (My Applications)
   const [activeTab, setActiveTab] = useState<'drives' | 'my-applications'>('drives');
@@ -106,40 +114,52 @@ export const StudentPortal: React.FC = () => {
 
   // Handle Apply button click
   const handleApply = async (driveId: string) => {
+    if (currentRole !== 'student') {
+      addToast('Unauthorized', 'Only student accounts can apply for placement drives.', 'error');
+      return;
+    }
+
+    if (!currentStudent?.id) {
+      addToast('Profile Incomplete', 'Could not locate student ID for your profile.', 'error');
+      return;
+    }
+
+    if (isApplyingDriveId) return;
+
     setIsApplyingDriveId(driveId);
     try {
-      await applyToDrive(currentStudent.id, driveId);
-      // Reload eligibility / applications if needed
-      await loadStudentEligibility();
+      const res = await applyToDrive(currentStudent.id, driveId);
+      if (res.success) {
+        await loadStudentEligibility();
+      }
+    } catch (err: any) {
+      console.error('Error applying to drive:', err);
+      addToast('Application Failed', err?.message || 'Failed to submit application.', 'error');
     } finally {
       setIsApplyingDriveId(null);
     }
   };
 
-  // Helper to determine eligibility state for a drive
+  // Helper to determine eligibility state for a drive using existing project engines
   const getDriveEligibilityState = (drive: PlacementDrive): {
-    status: 'Eligible' | 'Not Eligible' | 'Not Evaluated';
+    isEligible: boolean;
     reasons: string[];
   } => {
+    // 1. Check if Supabase eligibility results table has a cached pre-evaluated record
     const dbRecord = studentEligibilityMap.get(drive.id);
     if (dbRecord) {
       if (dbRecord.eligible) {
-        return { status: 'Eligible', reasons: [] };
+        return { isEligible: true, reasons: [] };
       } else {
         const reasons = Array.isArray(dbRecord.reasons) ? dbRecord.reasons : [];
-        return { status: 'Not Eligible', reasons: reasons.length > 0 ? reasons : ['Eligibility criteria not satisfied.'] };
+        return { isEligible: false, reasons: reasons.length > 0 ? reasons : ['Eligibility criteria not satisfied.'] };
       }
     }
 
-    // If Supabase is configured but no record exists yet for this drive in eligibility_results table
-    if (supabase) {
-      return { status: 'Not Evaluated', reasons: ['Eligibility has not been evaluated for this drive yet.'] };
-    }
-
-    // Fallback deterministic local evaluation if offline
+    // 2. Deterministic local rule engine (source of truth when no cached DB record exists)
     const localEval = evaluateEligibility(currentStudent, drive);
     return {
-      status: localEval.isEligible ? 'Eligible' : 'Not Eligible',
+      isEligible: localEval.isEligible,
       reasons: localEval.reasons
     };
   };
@@ -187,26 +207,28 @@ export const StudentPortal: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Switch student dropdown */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-blue-100 text-[11px] font-semibold">Demo Student:</span>
-          <select
-            id="student-switcher-select"
-            value={currentStudent.id}
-            onChange={e => setActiveStudentId(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold focus:outline-none cursor-pointer"
-          >
-            {(students || []).map(s => {
-              const sOffers = (offers || []).filter(o => o.studentId === s.id && o.status === 'Accepted');
-              const offerText = sOffers.length > 0 ? ` [₹${sOffers[0].packageLPA} LPA Offer]` : '';
-              return (
-                <option key={s.id} value={s.id} className="text-slate-900">
-                  {s.name} ({s.branch}, {s.cgpa} CGPA{offerText})
-                </option>
-              );
-            })}
-          </select>
-        </div>
+        {/* Quick Switch student dropdown (only available in demo / unauthenticated mode) */}
+        {(!isAuthenticated || userProfile?.role !== 'student') && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-blue-100 text-[11px] font-semibold">Demo Student:</span>
+            <select
+              id="student-switcher-select"
+              value={currentStudent.id}
+              onChange={e => setActiveStudentId(e.target.value)}
+              className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs font-bold focus:outline-none cursor-pointer"
+            >
+              {(students || []).map(s => {
+                const sOffers = (offers || []).filter(o => o.studentId === s.id && o.status === 'Accepted');
+                const offerText = sOffers.length > 0 ? ` [₹${sOffers[0].packageLPA} LPA Offer]` : '';
+                return (
+                  <option key={s.id} value={s.id} className="text-slate-900">
+                    {s.name} ({s.branch}, {s.cgpa} CGPA{offerText})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Academic Highlights & Policy Standing */}
@@ -289,9 +311,15 @@ export const StudentPortal: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {safeDrives.map(drive => {
-              const { status: eligibilityBadgeStatus, reasons: ineligibilityReasons } = getDriveEligibilityState(drive);
+              const eligibilityState = getDriveEligibilityState(drive);
               const offerPolicyResult = checkOfferPolicy(currentStudent, drive);
-              const hasApplied = studentApplications.some(a => a.driveId === drive.id);
+              const isEligible = eligibilityState.isEligible && !offerPolicyResult.blocked;
+              const ineligibilityReasons = !eligibilityState.isEligible
+                ? eligibilityState.reasons
+                : (offerPolicyResult.blocked ? [offerPolicyResult.reason] : []);
+
+              const hasApplied = studentApplications.some(a => a.driveId === drive.id) ||
+                safeApplications.some(a => a.studentId === currentStudent.id && a.driveId === drive.id);
 
               return (
                 <div
@@ -349,37 +377,18 @@ export const StudentPortal: React.FC = () => {
                     {/* Eligibility Status Badge */}
                     <div className="mt-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] uppercase font-bold text-slate-400">Eligibility & Policy</span>
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Eligibility Status</span>
                       </div>
 
-                      {eligibilityBadgeStatus === 'Eligible' && !offerPolicyResult.blocked && (
+                      {isEligible ? (
                         <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                           <span>Eligible to Apply</span>
                         </div>
-                      )}
-
-                      {eligibilityBadgeStatus === 'Eligible' && offerPolicyResult.blocked && (
-                        <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 text-xs font-bold flex items-start gap-1.5" title={offerPolicyResult.reason}>
-                          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                          <div className="truncate">
-                            <span className="block">Blocked by Offer Policy</span>
-                            <span className="text-[10px] font-normal text-amber-700 dark:text-amber-400 block truncate">{offerPolicyResult.reason}</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {eligibilityBadgeStatus === 'Not Eligible' && (
-                        <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                      ) : (
+                        <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-1.5" title={ineligibilityReasons.join(', ')}>
                           <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                          <span>Not Eligible</span>
-                        </div>
-                      )}
-
-                      {eligibilityBadgeStatus === 'Not Evaluated' && (
-                        <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold flex items-center gap-1.5">
-                          <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-                          <span>Not Evaluated</span>
+                          <span className="truncate">{offerPolicyResult.blocked ? 'Blocked by Offer Policy' : 'Not Eligible'}</span>
                         </div>
                       )}
                     </div>
@@ -388,73 +397,70 @@ export const StudentPortal: React.FC = () => {
                   {/* Actions Row */}
                   <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
                     {/* If not eligible, show Why Not Eligible button */}
-                    {eligibilityBadgeStatus === 'Not Eligible' ? (
+                    {!isEligible ? (
                       <button
+                        type="button"
                         id={`why-not-eligible-btn-${drive.id}`}
                         onClick={() => {
                           setWhyNotEligibleModal({
                             drive,
-                            reasons: ineligibilityReasons
+                            reasons: ineligibilityReasons.length > 0 ? ineligibilityReasons : ['Eligibility criteria not satisfied.']
                           });
                         }}
-                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline flex items-center gap-1"
+                        className="text-[11px] font-bold text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:underline flex items-center gap-1 cursor-pointer"
                       >
                         <HelpCircle className="w-3.5 h-3.5" />
                         <span>Why Not Eligible?</span>
                       </button>
                     ) : (
-                      <span className="text-[11px] text-slate-400">{drive.location || 'On-Campus'}</span>
+                      <span className="text-[11px] text-slate-400 font-medium">{drive.location || 'On-Campus'}</span>
                     )}
 
-                    {/* Action Button: Applied / Apply Now / Disabled */}
+                    {/* Action Button: Applied / Not Eligible / Apply Now */}
                     {hasApplied ? (
-                      <span
-                        id={`applied-badge-${drive.id}`}
-                        className="px-3 py-1.5 rounded-xl bg-blue-100 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Applied</span>
-                      </span>
-                    ) : eligibilityBadgeStatus === 'Eligible' && !offerPolicyResult.blocked ? (
+                      /* B) If the student has already applied: Show disabled "Applied" */
                       <button
+                        type="button"
+                        id={`applied-btn-${drive.id}`}
+                        disabled={true}
+                        className="px-3.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-90 transition-all"
+                        title="You have already applied for this placement drive"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        <span>Applied</span>
+                      </button>
+                    ) : !isEligible ? (
+                      /* C) If the student is NOT eligible: Show disabled "Not Eligible" */
+                      <button
+                        type="button"
+                        id={`not-eligible-btn-${drive.id}`}
+                        disabled={true}
+                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-all"
+                        title={ineligibilityReasons.join(', ') || 'You do not satisfy eligibility criteria for this placement drive.'}
+                      >
+                        <XCircle className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+                        <span>Not Eligible</span>
+                      </button>
+                    ) : (
+                      /* A) If the student is ELIGIBLE and has NOT applied: Show active "Apply Now" */
+                      <button
+                        type="button"
                         id={`apply-btn-${drive.id}`}
                         disabled={isApplyingDriveId === drive.id}
                         onClick={() => handleApply(drive.id)}
-                        className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1"
+                        className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
                       >
                         {isApplyingDriveId === drive.id ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Applying...</span>
+                          </>
                         ) : (
-                          <Send className="w-3.5 h-3.5" />
+                          <>
+                            <Send className="w-3.5 h-3.5" />
+                            <span>Apply Now</span>
+                          </>
                         )}
-                        <span>Apply Now</span>
-                      </button>
-                    ) : eligibilityBadgeStatus === 'Eligible' && offerPolicyResult.blocked ? (
-                      <button
-                        id={`apply-btn-policy-blocked-${drive.id}`}
-                        disabled={true}
-                        className="px-3 py-1.5 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-bold text-xs cursor-not-allowed border border-amber-300 dark:border-amber-800"
-                        title={`Policy Restriction: ${offerPolicyResult.reason}`}
-                      >
-                        Policy Blocked
-                      </button>
-                    ) : eligibilityBadgeStatus === 'Not Eligible' ? (
-                      <button
-                        id={`apply-btn-disabled-${drive.id}`}
-                        disabled={true}
-                        className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed border border-slate-200 dark:border-slate-700"
-                        title="You do not satisfy eligibility criteria for this placement drive."
-                      >
-                        Apply
-                      </button>
-                    ) : (
-                      <button
-                        id={`apply-btn-noteval-${drive.id}`}
-                        disabled={true}
-                        className="px-3.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold text-xs cursor-not-allowed border border-amber-200 dark:border-amber-800"
-                        title="Eligibility has not been evaluated for this drive yet."
-                      >
-                        Not Evaluated
                       </button>
                     )}
                   </div>
