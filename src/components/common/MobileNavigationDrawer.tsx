@@ -98,7 +98,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
     },
     {
       id: 'applications',
-      label: 'Applications & Gating',
+      label: 'Applications',
       icon: FileCheck2,
       badge: pendingAppsCount > 0 ? `${pendingAppsCount}` : null
     },

@@ -6,7 +6,7 @@ export type CompanyTier = 'Mass' | 'Core' | 'Dream' | 'Super Dream';
 
 export type DriveStatus = 'Draft' | 'Active' | 'Ongoing' | 'Upcoming' | 'Completed' | 'Cancelled';
 
-export type ApplicationStatus = 'Applied' | 'Shortlisted' | 'Interview' | 'Offered' | 'Selected' | 'Rejected' | 'Offer Accepted' | 'Offer Declined';
+export type ApplicationStatus = 'Applied' | 'Shortlisted' | 'Interview' | 'Selected' | 'Rejected' | 'Withdrawn' | 'Offered' | 'Offer Accepted' | 'Offer Declined';
 
 export type OfferStatus = 'Offered' | 'Accepted' | 'Rejected' | 'Withdrawn' | 'Pending' | 'Declined' | 'Revoked' | 'Blocked by Policy';
 
@@ -226,12 +226,21 @@ export interface Application {
   studentBranch: Branch;
   studentCgpa: number;
   studentAttendance: number;
+  studentBacklogs?: number;
+  studentEmail?: string;
   driveId: string;
+  companyId?: string;
   companyName: string;
   companyLogo: string;
+  companyIndustry?: string;
+  companyWebsite?: string;
   role: string;
   packageLPA: number;
+  driveDate?: string;
+  driveStatus?: string;
   appliedDate: string;
+  appliedAt?: string;
+  updatedAt?: string;
   eligibilityStatus: 'Eligible' | 'Conditionally Eligible' | 'Ineligible';
   ineligibilityReasons?: string[];
   status: ApplicationStatus;

@@ -159,6 +159,8 @@ export const StudentPortal: React.FC = () => {
       case 'Rejected':
       case 'Offer Declined':
         return 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800';
+      case 'Withdrawn':
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700';
       default:
         return 'bg-slate-100 text-slate-700 border border-slate-200';
     }

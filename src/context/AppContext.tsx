@@ -53,6 +53,7 @@ import {
   upsertApplicationToSupabase,
   addApplicationToSupabase,
   updateApplicationInSupabase,
+  checkApplicationExistsInSupabase,
   checkStudentEligibilityForDriveInDb,
   fetchApplicationsJoinedFromSupabase,
   upsertOfferToSupabase,
@@ -1023,68 +1024,73 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (!student || !drive) {
       addToast('Error', 'Student or drive record not found.', 'error');
-      return { success: false, message: 'Student or drive not found' };
+      return { success: false, message: 'Student or drive record not found.' };
     }
 
     // 1. Check if already applied (prevent duplicate applications)
-    const existing = applications.find(a => a.studentId === studentId && a.driveId === driveId);
-    if (existing) {
-      const msg = 'You have already applied for this placement drive.';
-      addToast('Notice', msg, 'info');
+    const existingLocal = applications.find(a => a.studentId === studentId && a.driveId === driveId);
+    if (existingLocal) {
+      const msg = `You have already applied for this placement drive. Current status: ${existingLocal.status}`;
+      addToast('Application Exists', msg, 'info');
       return { success: false, message: msg };
     }
 
-    // 2. Check eligibility_results (The deterministic eligibility engine remains the source of truth)
+    if (isSupabaseConfigured) {
+      const existingInDb = await checkApplicationExistsInSupabase(studentId, driveId);
+      if (existingInDb.exists) {
+        const msg = `You have already applied for this placement drive. Current status: ${existingInDb.status || 'Applied'}`;
+        addToast('Application Exists', msg, 'info');
+        return { success: false, message: msg };
+      }
+    }
+
+    // 2. Deterministic Eligibility Engine (Source of truth)
     let isEligible = false;
     let eligibilityReasons: string[] = [];
-    let isEvaluated = false;
 
     if (isSupabaseConfigured) {
       const dbCheck = await checkStudentEligibilityForDriveInDb(studentId, driveId);
-      if (dbCheck.status === 'not_evaluated') {
-        const msg = 'Eligibility has not been evaluated for this drive yet.';
-        addToast('Evaluation Required', msg, 'warning');
-        return { success: false, message: msg };
+      if (dbCheck.status === 'eligible') {
+        isEligible = true;
       } else if (dbCheck.status === 'ineligible') {
         isEligible = false;
-        eligibilityReasons = dbCheck.reasons.length > 0 ? dbCheck.reasons : ['Does not meet minimum drive criteria.'];
-        isEvaluated = true;
-      } else if (dbCheck.status === 'eligible') {
-        isEligible = true;
-        isEvaluated = true;
+        eligibilityReasons = dbCheck.reasons.length > 0 ? dbCheck.reasons : ['Minimum eligibility criteria not satisfied.'];
+      } else {
+        // Fallback to deterministic local engine if no pre-evaluated DB record
+        const evaluation = evaluateEligibility(student, drive);
+        isEligible = evaluation.isEligible;
+        eligibilityReasons = evaluation.reasons;
       }
     } else {
-      // Local fallback using deterministic eligibility engine
       const evaluation = evaluateEligibility(student, drive);
       isEligible = evaluation.isEligible;
       eligibilityReasons = evaluation.reasons;
-      isEvaluated = true;
-    }
-
-    if (!isEvaluated) {
-      const msg = 'Eligibility has not been evaluated for this drive yet.';
-      addToast('Evaluation Required', msg, 'warning');
-      return { success: false, message: msg };
     }
 
     if (!isEligible) {
-      const reasonStr = eligibilityReasons.join('. ') || 'Criteria not met';
+      const reasonStr = eligibilityReasons.length > 0
+        ? eligibilityReasons.join('; ')
+        : 'Minimum eligibility criteria not satisfied.';
       addToast('Application Blocked', `Ineligible for ${drive.companyName}: ${reasonStr}`, 'warning');
-      return { success: false, message: `You are not eligible for this placement drive. Reason: ${reasonStr}` };
+      return {
+        success: false,
+        message: `You are not eligible for this placement drive.\n\nReasons:\n${eligibilityReasons.map(r => `• ${r}`).join('\n')}`
+      };
     }
 
     // 3. Offer Policy Check
     const offerPolicyResult = evaluateOfferPolicy(student, drive);
     if (offerPolicyResult.blocked) {
-      addToast('Application Blocked', `Reason: ${offerPolicyResult.reason}`, 'warning');
+      addToast('Application Blocked', `Placement Policy: ${offerPolicyResult.reason}`, 'warning');
       return {
         success: false,
-        message: `Application Blocked\n\nReason:\n${offerPolicyResult.reason}`
+        message: `Application Blocked by Placement Policy:\n\n${offerPolicyResult.reason}`
       };
     }
 
     // 4. Eligible & Evaluated: Create Application with status "Applied"
     const appId = generateUUID();
+    const nowIso = new Date().toISOString();
     const newApp: Application = {
       id: appId,
       studentId: student.id,
@@ -1093,12 +1099,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       studentBranch: student.branch,
       studentCgpa: student.cgpa,
       studentAttendance: student.attendance,
+      studentBacklogs: student.backlogs ?? 0,
+      studentEmail: student.email || '',
       driveId: drive.id,
+      companyId: drive.companyId,
       companyName: drive.companyName,
-      companyLogo: drive.companyLogo,
+      companyLogo: drive.companyLogo || '',
+      companyIndustry: 'Technology',
+      companyWebsite: '',
       role: drive.role,
       packageLPA: drive.packageLPA,
-      appliedDate: new Date().toISOString().split('T')[0],
+      driveDate: drive.driveDate || '',
+      driveStatus: drive.status || 'Active',
+      appliedDate: nowIso.split('T')[0],
+      appliedAt: nowIso,
+      updatedAt: nowIso,
       eligibilityStatus: 'Eligible',
       status: 'Applied',
       currentRound: drive.rounds?.[0] || 'Application Review'
@@ -1108,11 +1123,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     if (isSupabaseConfigured) {
       const res = await addApplicationToSupabase(newApp);
+      if (res.error) {
+        console.error('Supabase application creation notice:', res.error);
+        addToast('Application Notice', res.error, 'warning');
+        return { success: false, message: res.error };
+      }
       if (res.data?.id && res.data.id !== appId) {
         setApplications(prev => prev.map(a => a.id === appId ? { ...a, id: res.data!.id } : a));
-      }
-      if (res.error) {
-        console.error('Supabase application creation error:', res.error);
       }
     }
 
@@ -1131,22 +1148,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateApplicationStatus = async (appId: string, newStatus: ApplicationStatus, currentRound?: string) => {
+    const nowIso = new Date().toISOString();
     setApplications(prev => prev.map(app => {
       if (app.id === appId) {
-        const u = {
+        return {
           ...app,
           status: newStatus,
+          updatedAt: nowIso,
           currentRound: currentRound || app.currentRound
         };
-        return u;
       }
       return app;
     }));
 
     if (isSupabaseConfigured) {
       const res = await updateApplicationInSupabase(appId, {
-        status: newStatus,
-        currentRound
+        status: newStatus
       });
       if (!res.success && res.error) {
         console.error(`Supabase update error for application ${appId}:`, res.error);
@@ -1155,7 +1172,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
     }
 
-    addToast('Status Updated', `Application moved to ${newStatus}`, 'info');
+    addToast('Status Updated', `Application marked as ${newStatus}`, 'success');
   };
 
   // Offer Actions

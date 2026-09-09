@@ -1516,13 +1516,141 @@ export async function fetchApplicationsFromSupabase(): Promise<{ data?: Applicat
   return fetchApplicationsJoinedFromSupabase();
 }
 
+export async function checkApplicationExistsInSupabase(studentId: string, driveId: string): Promise<{ exists: boolean; status?: ApplicationStatus; id?: string; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { exists: false };
+  }
+  try {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('id, status, applied_at')
+      .eq('student_id', studentId)
+      .eq('drive_id', driveId)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('Check application exists query error:', error.message);
+      return { exists: false, error: error.message };
+    }
+    if (data) {
+      return { exists: true, status: data.status as ApplicationStatus, id: data.id };
+    }
+    return { exists: false };
+  } catch (err: any) {
+    console.error('Exception checking application existence in Supabase:', err);
+    return { exists: false, error: err?.message };
+  }
+}
+
 export async function fetchApplicationsJoinedFromSupabase(): Promise<{ data?: Application[]; error?: string }> {
   if (!isSupabaseConfigured || !supabase) {
     return { error: 'Supabase is not configured' };
   }
   try {
+    // 1. Try authoritative PostgREST joined query using foreign keys
+    const { data: joinedData, error: joinError } = await supabase
+      .from('applications')
+      .select(`
+        id,
+        student_id,
+        drive_id,
+        status,
+        applied_at,
+        updated_at,
+        students (
+          id,
+          full_name,
+          enrollment_no,
+          email,
+          branch,
+          cgpa,
+          attendance,
+          backlogs
+        ),
+        placement_drives (
+          id,
+          role,
+          package_lpa,
+          min_cgpa,
+          max_backlogs,
+          min_attendance,
+          drive_date,
+          status,
+          company_id,
+          companies (
+            id,
+            company_name,
+            industry,
+            website
+          )
+        )
+      `)
+      .order('applied_at', { ascending: false });
+
+    if (!joinError && Array.isArray(joinedData)) {
+      const mapped: Application[] = joinedData.map((row: any) => {
+        const student = row.students;
+        const drive = row.placement_drives;
+        const company = drive?.companies;
+
+        const studentName = student?.full_name || 'Student';
+        const studentEnrollment = student?.enrollment_no || '';
+        const studentBranch = (student?.branch || 'CSE') as Branch;
+        const studentCgpa = parseFloat(String(student?.cgpa ?? 0)) || 0;
+        const studentAttendance = parseInt(String(student?.attendance ?? 75), 10) || 75;
+        const studentBacklogs = parseInt(String(student?.backlogs ?? 0), 10) || 0;
+        const studentEmail = student?.email || '';
+
+        const companyName = company?.company_name || 'Company';
+        const companyLogo = '';
+        const companyIndustry = company?.industry || 'Technology';
+        const companyWebsite = company?.website || '';
+
+        const role = drive?.role || 'Software Engineer';
+        const packageLPA = parseFloat(String(drive?.package_lpa ?? 0)) || 0;
+        const driveDate = drive?.drive_date || '';
+        const driveStatus = drive?.status || 'Active';
+
+        const appliedAt = row.applied_at || new Date().toISOString();
+        const appliedDate = appliedAt.split('T')[0];
+
+        return {
+          id: String(row.id),
+          studentId: String(row.student_id),
+          studentName,
+          studentEnrollment,
+          studentBranch,
+          studentCgpa,
+          studentAttendance,
+          studentBacklogs,
+          studentEmail,
+          driveId: String(row.drive_id),
+          companyId: company?.id ? String(company.id) : undefined,
+          companyName,
+          companyLogo,
+          companyIndustry,
+          companyWebsite,
+          role,
+          packageLPA,
+          driveDate,
+          driveStatus,
+          appliedDate,
+          appliedAt,
+          updatedAt: row.updated_at || appliedAt,
+          eligibilityStatus: 'Eligible',
+          ineligibilityReasons: [],
+          status: (row.status as ApplicationStatus) || 'Applied',
+          currentRound: 'Application Review'
+        };
+      });
+
+      return { data: mapped };
+    }
+
+    // 2. Fallback: Separate table fetches if nested relationship schema is not resolved
+    console.warn('Notice: falling back to separate queries for joined applications:', joinError?.message);
     const [appRes, studentRes, driveRes, compRes] = await Promise.all([
-      supabase.from('applications').select('*'),
+      supabase.from('applications').select('*').order('applied_at', { ascending: false }),
       supabase.from('students').select('*'),
       supabase.from('placement_drives').select('*'),
       supabase.from('companies').select('*')
@@ -1554,15 +1682,21 @@ export async function fetchApplicationsJoinedFromSupabase(): Promise<{ data?: Ap
       const studentBranch = (s?.branch || 'CSE') as Branch;
       const studentCgpa = parseFloat(String(s?.cgpa ?? 0)) || 0;
       const studentAttendance = parseInt(String(s?.attendance ?? 75), 10) || 75;
+      const studentBacklogs = parseInt(String(s?.backlogs ?? 0), 10) || 0;
+      const studentEmail = s?.email || '';
 
       const companyName = c?.company_name || d?.company_name || 'Company';
       const companyLogo = c?.logo || '';
+      const companyIndustry = c?.industry || 'Technology';
+      const companyWebsite = c?.website || '';
+
       const role = d?.role || 'Software Engineer';
       const packageLPA = parseFloat(String(d?.package_lpa ?? 0)) || 0;
+      const driveDate = d?.drive_date || '';
+      const driveStatus = d?.status || 'Active';
 
-      const appliedDate = row.applied_at
-        ? String(row.applied_at).split('T')[0]
-        : new Date().toISOString().split('T')[0];
+      const appliedAt = row.applied_at || new Date().toISOString();
+      const appliedDate = appliedAt.split('T')[0];
 
       return {
         id: String(row.id),
@@ -1572,22 +1706,27 @@ export async function fetchApplicationsJoinedFromSupabase(): Promise<{ data?: Ap
         studentBranch,
         studentCgpa,
         studentAttendance,
+        studentBacklogs,
+        studentEmail,
         driveId,
+        companyId: c?.id ? String(c.id) : undefined,
         companyName,
         companyLogo,
+        companyIndustry,
+        companyWebsite,
         role,
         packageLPA,
+        driveDate,
+        driveStatus,
         appliedDate,
+        appliedAt,
+        updatedAt: row.updated_at || appliedAt,
         eligibilityStatus: 'Eligible',
         ineligibilityReasons: [],
         status: (row.status as ApplicationStatus) || 'Applied',
-        currentRound: d?.rounds?.[0] || 'Application Review',
-        interviewSlot: undefined,
-        feedback: undefined
+        currentRound: 'Application Review'
       };
     });
-
-    joined.sort((a, b) => new Date(b.appliedDate).getTime() - new Date(a.appliedDate).getTime());
 
     return { data: joined };
   } catch (err: any) {
@@ -1615,6 +1754,15 @@ export async function addApplicationToSupabase(application: Application): Promis
 
     if (error) {
       console.error('Supabase insert application error:', error);
+      // Catch duplicate key constraint (student_id, drive_id)
+      if (
+        error.code === '23505' ||
+        error.message?.toLowerCase().includes('duplicate key') ||
+        error.message?.toLowerCase().includes('unique constraint') ||
+        error.message?.toLowerCase().includes('applications_student_id_drive_id')
+      ) {
+        return { error: 'You have already submitted an application for this placement drive. A duplicate application cannot be created.' };
+      }
       return { error: error.message };
     }
     const savedApp: Application = { ...application, id: data?.[0]?.id || appId };
@@ -1649,6 +1797,10 @@ export async function updateApplicationInSupabase(id: string, partial: Partial<A
     console.error(`Exception updating application ${id} in Supabase:`, err);
     return { success: false, error: err?.message || 'Failed to update application in Supabase' };
   }
+}
+
+export async function updateApplicationStatusInSupabase(id: string, newStatus: ApplicationStatus): Promise<{ success: boolean; error?: string }> {
+  return updateApplicationInSupabase(id, { status: newStatus });
 }
 
 export async function deleteApplicationFromSupabase(id: string): Promise<{ success: boolean; error?: string }> {
