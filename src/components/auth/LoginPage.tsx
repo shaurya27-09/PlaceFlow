@@ -313,22 +313,7 @@ export const LoginPage: React.FC = () => {
                     Hackathon Demo Testing (1-Click Access)
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    id="quick-demo-admin"
-                    onClick={() => {
-                      setCurrentRole('admin');
-                      setActiveStudentId(null);
-                      setSelectedCompanyId(null);
-                      setCurrentView('dashboard');
-                      addToast('Demo Admin Access', 'Signed in as Head of T&P Cell', 'success');
-                    }}
-                    className="py-2 px-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                  >
-                    <Shield className="w-3.5 h-3.5 text-blue-600" />
-                    <span>T&P Admin</span>
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     id="quick-demo-student"

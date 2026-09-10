@@ -32,7 +32,6 @@ import {
   Legend
 } from 'recharts';
 import { Branch } from '../../types';
-import { SupabaseConsoleBar } from '../database/SupabaseConsoleBar';
 
 interface AdminDashboardProps {
   onOpenCreateDrive: () => void;
@@ -665,9 +664,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
 
       {/* Bento Grid Row 3: Upcoming Placement Drives (col-span-12) */}
       <div className="space-y-4">
-        {/* Floating Supabase Console Bar over Placement Drives Area */}
-        <SupabaseConsoleBar variant="floating" className="sticky top-16 sm:top-20 z-20 drop-shadow-2xl" />
-
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-2">
             <div>

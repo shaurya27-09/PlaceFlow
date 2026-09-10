@@ -326,13 +326,13 @@ export const AiAssistantPage: React.FC = () => {
                 {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
               </div>
 
-              <div>
+              <div className="min-w-0">
                 <div className={`p-4 rounded-2xl ${
                   msg.sender === 'user'
                     ? 'bg-blue-600 text-white rounded-tr-none'
                     : 'bg-slate-50 dark:bg-slate-800/80 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700/80 rounded-tl-none'
                 }`}>
-                  <div className="whitespace-pre-line font-medium leading-relaxed">
+                  <div className="whitespace-pre-line break-words font-medium leading-relaxed">
                     {msg.text}
                   </div>
                 </div>

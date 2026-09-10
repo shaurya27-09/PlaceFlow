@@ -35,9 +35,6 @@ const viteSupabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta.
 
 export const DEFAULT_SUPABASE_ANON_KEY = viteSupabaseAnonKey;
 
-// Required debugging log (Supabase URL only, anon key is NEVER logged)
-console.log("Supabase URL:", viteSupabaseUrl || DEFAULT_SUPABASE_URL);
-
 /**
  * Normalizes and cleans Supabase Project URLs
  * Handles trailing slashes, dashboard URLs, missing https://, etc.
@@ -1869,7 +1866,6 @@ export interface SupabaseDiagnosticInfo {
   details?: string;
   hint?: string;
   code?: string;
-  url: string;
 }
 
 export async function fetchOffersFromSupabase(): Promise<{ data?: Offer[]; error?: string; diagnostic?: SupabaseDiagnosticInfo }> {
@@ -1881,19 +1877,14 @@ export async function fetchOffersJoinedFromSupabase(): Promise<{
   error?: string;
   diagnostic?: SupabaseDiagnosticInfo;
 }> {
-  const creds = getSupabaseCredentials();
-  const activeUrl = creds.url || 'Not configured';
   const client = getSupabaseClient() || supabase;
 
   if (!isSupabaseConfigured || !client) {
     const diag: SupabaseDiagnosticInfo = {
-      message: 'Supabase is not configured or credentials are missing',
-      url: activeUrl
+      message: 'Supabase is not configured or credentials are missing'
     };
     return { error: 'Supabase is not configured', diagnostic: diag };
   }
-
-  console.log("Fetching offers from Supabase");
 
   try {
     const [offersRes, studentRes, compRes, driveRes] = await Promise.all([
@@ -1909,8 +1900,7 @@ export async function fetchOffersJoinedFromSupabase(): Promise<{
         message: offersRes.error.message,
         details: offersRes.error.details,
         hint: offersRes.error.hint,
-        code: offersRes.error.code,
-        url: activeUrl
+        code: offersRes.error.code
       };
       return { error: offersRes.error.message, diagnostic: diag };
     }
@@ -1971,8 +1961,7 @@ export async function fetchOffersJoinedFromSupabase(): Promise<{
       message: err?.message || 'Failed to fetch offers from Supabase',
       details: err?.details || err?.stack,
       hint: err?.hint,
-      code: err?.code,
-      url: activeUrl
+      code: err?.code
     };
     return { error: diag.message, diagnostic: diag };
   }

@@ -5,7 +5,6 @@ import {
   fetchOffersJoinedFromSupabase,
   updateOfferStatusInSupabase,
   SupabaseDiagnosticInfo,
-  getSupabaseCredentials,
   isSupabaseConfigured
 } from '../../lib/supabase';
 import {
@@ -30,8 +29,7 @@ import {
   DollarSign,
   UserCheck,
   Ban,
-  ExternalLink,
-  Settings
+  ExternalLink
 } from 'lucide-react';
 import { Offer, OfferStatus, CompanyTier } from '../../types';
 import { checkOfferPolicy, formatLpa } from '../../lib/offerPolicyEngine';
@@ -91,13 +89,11 @@ export const OffersPage: React.FC = () => {
       }
     } catch (err: any) {
       console.warn('Notice loading offers from database:', err?.message || err);
-      const creds = getSupabaseCredentials();
       setErrorMessage(err?.message || 'Failed to load offers');
       setDiagnosticInfo({
         message: err?.message || 'Exception loading offers',
         details: err?.stack || undefined,
-        code: err?.code || 'RUNTIME_ERROR',
-        url: creds.url
+        code: err?.code || 'RUNTIME_ERROR'
       });
       setOffersList(contextOffers || []);
     } finally {
@@ -322,11 +318,6 @@ export const OffersPage: React.FC = () => {
                 <div className="mt-1 text-rose-700 dark:text-rose-300 font-medium">
                   <strong>Message:</strong> {errorMessage}
                 </div>
-                {diagnosticInfo?.url && (
-                  <div className="mt-0.5 text-slate-600 dark:text-slate-400 text-[11px] font-mono">
-                    <strong>Contacted Project URL:</strong> {diagnosticInfo.url}
-                  </div>
-                )}
                 {diagnosticInfo?.details && (
                   <div className="mt-1 text-slate-600 dark:text-slate-400 text-[11px]">
                     <strong>Details:</strong> {diagnosticInfo.details}
@@ -344,8 +335,8 @@ export const OffersPage: React.FC = () => {
                 onClick={() => setIsSupabaseModalOpen(true)}
                 className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
               >
-                <Settings className="w-3.5 h-3.5 text-blue-400" />
-                <span>Supabase Settings</span>
+                <Database className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Database Status</span>
               </button>
               <button
                 onClick={loadOffers}

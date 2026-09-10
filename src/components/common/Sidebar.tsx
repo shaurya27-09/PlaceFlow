@@ -118,9 +118,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenCreateDrive }) => {
     },
     {
       id: 'database-settings',
-      label: 'Database Settings',
+      label: 'Database Status',
       icon: Database,
-      badge: isSupabaseConfigured ? 'Live' : 'Config',
+      badge: isSupabaseConfigured ? 'Live' : 'Local',
       badgeColor: isSupabaseConfigured ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
     }
   ];
