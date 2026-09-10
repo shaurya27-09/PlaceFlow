@@ -459,7 +459,7 @@ export const ApplicationsPage: React.FC = () => {
       )}
 
       {/* 2. Summary Cards (Total, Applied, Shortlisted, Interview, Selected, Rejected) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 text-xs">
         {/* Total Applications */}
         <button
           id="summary-card-total"
@@ -739,8 +739,8 @@ export const ApplicationsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[760px]">
+          <div className="w-full max-w-full overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[660px]">
               <thead className="bg-slate-50/90 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Student</th>

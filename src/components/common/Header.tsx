@@ -127,26 +127,26 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
   };
 
   return (
-    <header className={`sticky top-0 ${showProfileModal || showSupabaseModal ? 'z-[9999]' : 'z-40'} w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-200`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <header className={`sticky top-0 ${showProfileModal || showSupabaseModal ? 'z-[9999]' : 'z-40'} w-full max-w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-200`}>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
         {/* Left: Brand Logo & Title with Active Drives Pill */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
           <button
             id="brand-logo-button"
             onClick={() => setCurrentView(currentRole === 'student' ? 'student-portal' : currentRole === 'recruiter' ? 'recruiter-portal' : 'dashboard')}
-            className="flex items-center gap-2.5 text-left group"
+            className="flex items-center gap-2 sm:gap-2.5 text-left group"
           >
-            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform shrink-0">
               <div className="w-4 h-4 border-2 border-white rounded-xs"></div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-sans font-black text-xl text-slate-900 dark:text-white tracking-tight">
+                <span className="font-sans font-black text-lg sm:text-xl text-slate-900 dark:text-white tracking-tight">
                   PlaceFlow
                 </span>
-                <span className="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold rounded-full border border-emerald-200 dark:border-emerald-800/60 hidden sm:inline-flex items-center gap-1">
+                <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[10px] sm:text-[11px] font-bold rounded-full border border-emerald-200 dark:border-emerald-800/60 hidden md:inline-flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Drives Active ({activeDrivesCount})
+                  Active ({activeDrivesCount})
                 </span>
               </div>
             </div>
@@ -154,16 +154,16 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
         </div>
 
         {/* Center / Right controls */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-2.5 min-w-0 shrink-0">
           {/* Ask PlaceFlow AI Input */}
-          <form onSubmit={handleSearchSubmit} className="relative hidden md:block">
+          <form onSubmit={handleSearchSubmit} className="relative hidden xl:block">
             <input
               type="text"
               id="header-search-ai"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Ask PlaceFlow AI..."
-              className="bg-slate-100 dark:bg-slate-800/80 border-none rounded-full px-4 py-1.5 text-xs text-slate-900 dark:text-white w-52 lg:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400"
+              className="bg-slate-100 dark:bg-slate-800/80 border-none rounded-full px-4 py-1.5 text-xs text-slate-900 dark:text-white w-40 2xl:w-56 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all placeholder:text-slate-400"
             />
             <button
               type="submit"
@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
                   setCurrentView('create-drive');
                 }
               }}
-              className="hidden sm:flex items-center gap-1.5 bg-blue-600 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors"
+              className="hidden 2xl:flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Drive</span>
@@ -200,20 +200,20 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
                 setShowStudentDropdown(false);
                 setShowNotifications(false);
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold shadow-2xs transition-all cursor-pointer ${currentRoleInfo.color}`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold shadow-2xs transition-all cursor-pointer ${currentRoleInfo.color}`}
               title="Authenticated User Session"
               aria-expanded={showUserDropdown}
               aria-haspopup="true"
             >
               <RoleIcon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{currentRoleInfo.label}</span>
+              <span className="hidden md:inline">{currentRoleInfo.label}</span>
               <ChevronDown className="w-3 h-3 opacity-70" />
             </button>
           </div>
 
           {/* If Admin: can switch preview student for diagnostics */}
           {currentRole === 'admin' && (
-            <div className="relative hidden md:block" ref={studentDropdownRef}>
+            <div className="relative hidden xl:block" ref={studentDropdownRef}>
               <button
                 id="active-student-switcher"
                 onClick={() => {
@@ -221,7 +221,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
                   setShowUserDropdown(false);
                   setShowNotifications(false);
                 }}
-                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-700 dark:text-slate-200 hover:border-slate-300 cursor-pointer"
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-700 dark:text-slate-200 hover:border-slate-300 cursor-pointer"
                 title="Inspect student view"
                 aria-expanded={showStudentDropdown}
                 aria-haspopup="true"
@@ -229,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
                 <div className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[9px] font-bold">
                   {activeStudent?.name?.charAt(0) || 'S'}
                 </div>
-                <span className="font-medium truncate max-w-[110px]">{activeStudent?.name || 'Inspect Student'}</span>
+                <span className="font-medium truncate max-w-[90px]">{activeStudent?.name?.split(' ')[0] || 'Inspect'}</span>
                 <ChevronDown className="w-3 h-3 text-slate-400" />
               </button>
 
@@ -324,9 +324,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
             title="Supabase PostgreSQL Database Configuration & Sync"
             aria-label="Database Settings"
           >
-            <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-            <span className="hidden lg:inline text-[11px]">
-              {isSupabaseConfigured ? (supabaseConnected ? 'Supabase Connected' : 'Supabase (Check)') : 'Database'}
+            <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className="hidden xl:inline text-[11px]">
+              {isSupabaseConfigured ? (supabaseConnected ? 'Supabase' : 'Supabase') : 'Database'}
             </span>
           </button>
 

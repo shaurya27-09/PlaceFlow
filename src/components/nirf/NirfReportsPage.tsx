@@ -555,8 +555,8 @@ export const NirfReportsPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="w-full max-w-full overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse min-w-[640px]">
             <thead className="bg-slate-100/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="py-3 px-4">Branch / Discipline</th>

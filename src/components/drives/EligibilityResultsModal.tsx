@@ -519,8 +519,8 @@ export const EligibilityResultsModal: React.FC = () => {
 
       {/* Roster Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="w-full max-w-full overflow-x-auto">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="bg-slate-50/90 dark:bg-slate-800/70 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="py-3.5 px-4">Student Name</th>

@@ -309,7 +309,7 @@ export const StudentPortal: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {safeDrives.map(drive => {
               const eligibilityState = getDriveEligibilityState(drive);
               const offerPolicyResult = checkOfferPolicy(currentStudent, drive);
@@ -504,8 +504,8 @@ export const StudentPortal: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs min-w-[560px]">
+              <div className="w-full max-w-full overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[500px]">
                   <thead className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold">
                     <tr>
                       <th className="py-3 px-4">Company</th>

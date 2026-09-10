@@ -404,8 +404,8 @@ export const OffersPage: React.FC = () => {
             <p className="text-xs text-slate-400 mt-1">Create offers for selected candidates on the Applications page.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[760px]">
+          <div className="w-full max-w-full overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[660px]">
               <thead className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold">
                 <tr>
                   <th className="py-3 px-4">Student Name</th>

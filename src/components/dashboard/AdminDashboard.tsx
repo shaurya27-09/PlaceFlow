@@ -260,8 +260,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         </div>
       </div>
 
-      {/* DASHBOARD CARDS: 8 dynamic live cards organized into 2 neat 4-column rows */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* DASHBOARD CARDS: 8 dynamic live cards organized into responsive grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Card 1: Total Students */}
         <div
           id="dashboard-card-total-students"
@@ -511,9 +511,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
       </div>
 
       {/* Row 2: Charts & PlaceFlow AI Insights Box */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Main Chart Bento: Season Trajectory (col-span-8) */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div className="xl:col-span-8 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-2">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
@@ -610,7 +610,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         </div>
 
         {/* PlaceFlow AI Insights Bento Card (col-span-4) */}
-        <div className="lg:col-span-4 bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between relative overflow-hidden">
+        <div className="xl:col-span-4 bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-between relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full blur-2xl pointer-events-none"></div>
 
           <div>
@@ -700,7 +700,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             No placement drives found. Click "New Drive" to create one.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
             {recentDrives.map(drive => {
               // Dynamically evaluate eligible students count
               const liveEligibleCount = safeStudents.filter(s => evaluateEligibility(s, drive).isEligible).length;

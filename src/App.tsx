@@ -106,16 +106,16 @@ const AppContent: React.FC = () => {
 
   // Authenticated Platform Dashboard Shell
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50/70 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white transition-colors duration-200">
       <Header
         onOpenCreateDrive={handleOpenCreateDrive}
         onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)}
       />
 
-      <div className="flex flex-1 w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 gap-6 pb-24 lg:pb-8 items-start relative z-0">
+      <div className="flex flex-1 w-full max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 gap-4 lg:gap-5 xl:gap-6 pb-24 lg:pb-8 items-start relative z-0 min-w-0">
         <Sidebar onOpenCreateDrive={handleOpenCreateDrive} />
 
-        <main id="primary-app-main-view" className="flex-1 min-w-0 w-full relative z-10">
+        <main id="primary-app-main-view" className="flex-1 min-w-0 w-full max-w-full relative z-10">
           {currentView === 'dashboard' && <AdminDashboard onOpenCreateDrive={handleOpenCreateDrive} />}
           {currentView === 'students' && <StudentsPage />}
           {currentView === 'companies' && <CompaniesPage />}

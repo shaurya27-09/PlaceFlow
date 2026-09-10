@@ -344,8 +344,8 @@ export const StudentsPage: React.FC = () => {
 
       {/* Main Student Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse min-w-[720px]">
+        <div className="w-full max-w-full overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse min-w-[680px]">
             <thead>
               <tr className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
                 <th className="py-3 px-4">

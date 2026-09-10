@@ -279,7 +279,7 @@ export const CompaniesPage: React.FC = () => {
         </div>
       ) : viewMode === 'grid' ? (
         /* Grid Mode */
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredCompanies.map(comp => {
             const companyDrives = (safeDrives || []).filter(d => d.companyId === comp.id || (d.companyName || '').toLowerCase().includes((comp.name || '').toLowerCase()));
             const activeCompanyDrives = companyDrives.filter(d => d.status === 'Active' || d.status === 'Ongoing');
@@ -410,8 +410,8 @@ export const CompaniesPage: React.FC = () => {
       ) : (
         /* Table Mode */
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="w-full max-w-full overflow-x-auto">
+            <table className="w-full text-left text-xs min-w-[620px]">
               <thead className="bg-slate-50/80 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-semibold">
                 <tr>
                   <th className="py-3 px-4">Company</th>
