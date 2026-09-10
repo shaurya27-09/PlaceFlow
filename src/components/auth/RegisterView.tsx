@@ -13,7 +13,6 @@ import {
   AlertCircle,
   RotateCw,
   Edit3,
-  Shield,
   Sparkles
 } from 'lucide-react';
 
@@ -624,22 +623,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
                 Hackathon Demo Testing (1-Click Access)
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                id="register-quick-demo-admin"
-                onClick={() => {
-                  setCurrentRole('admin');
-                  setActiveStudentId(null);
-                  setSelectedCompanyId(null);
-                  setCurrentView('dashboard');
-                  addToast('Demo Admin Access', 'Signed in as Head of T&P Cell', 'success');
-                }}
-                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
-              >
-                <Shield className="w-3.5 h-3.5 text-blue-600" />
-                <span>Admin</span>
-              </button>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 id="register-quick-demo-student"
@@ -661,8 +645,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
                 onClick={() => {
                   setCurrentRole('recruiter');
                   setActiveStudentId(null);
-                  setSelectedCompanyId('c-1');
-                  setCurrentView('recruiter-console');
+                  setSelectedCompanyId('comp-1');
+                  setCurrentView('recruiter-portal');
                   addToast('Demo Recruiter Access', 'Signed in as Priya Patel (Google)', 'success');
                 }}
                 className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
@@ -845,22 +829,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
                 Hackathon Demo Testing (1-Click Access)
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                id="register-step2-quick-demo-admin"
-                onClick={() => {
-                  setCurrentRole('admin');
-                  setActiveStudentId(null);
-                  setSelectedCompanyId(null);
-                  setCurrentView('dashboard');
-                  addToast('Demo Admin Access', 'Signed in as Head of T&P Cell', 'success');
-                }}
-                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
-              >
-                <Shield className="w-3.5 h-3.5 text-blue-600" />
-                <span>Admin</span>
-              </button>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 id="register-step2-quick-demo-student"
@@ -882,8 +851,8 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
                 onClick={() => {
                   setCurrentRole('recruiter');
                   setActiveStudentId(null);
-                  setSelectedCompanyId('c-1');
-                  setCurrentView('recruiter-console');
+                  setSelectedCompanyId('comp-1');
+                  setCurrentView('recruiter-portal');
                   addToast('Demo Recruiter Access', 'Signed in as Priya Patel (Google)', 'success');
                 }}
                 className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"

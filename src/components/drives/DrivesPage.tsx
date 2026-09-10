@@ -24,7 +24,6 @@ import {
 } from 'lucide-react';
 import { CreateDriveModal } from './CreateDriveModal';
 import { EditDriveModal } from './EditDriveModal';
-import { SupabaseConsoleBar } from '../database/SupabaseConsoleBar';
 
 export const DrivesPage: React.FC = () => {
   const {
@@ -210,9 +209,6 @@ export const DrivesPage: React.FC = () => {
           <span>Error loading placement drives from Supabase: {errorMessage} (showing local cache)</span>
         </div>
       )}
-
-      {/* Floating Black Supabase Console Bar over Placement Drives Area */}
-      <SupabaseConsoleBar variant="floating" className="sticky top-16 sm:top-20 z-20 mb-2 drop-shadow-2xl" />
 
       {/* Tabs & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
