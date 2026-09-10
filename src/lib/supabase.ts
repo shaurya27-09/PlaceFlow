@@ -311,6 +311,18 @@ export const supabase: SupabaseClient = new Proxy({} as SupabaseClient, {
           delete: () => Promise.resolve({ data: null, error: { message: 'Supabase client is not configured.' } }),
         });
       }
+      if (prop === 'auth') {
+        return {
+          signInWithOtp: () => Promise.resolve({ data: null, error: { message: 'Supabase client is not configured with valid URL/Anon Key.' } }),
+          verifyOtp: () => Promise.resolve({ data: null, error: { message: 'Supabase client is not configured.' } }),
+          signInWithPassword: () => Promise.resolve({ data: null, error: { message: 'Supabase client is not configured.' } }),
+          signOut: () => Promise.resolve({ error: null }),
+          getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+          getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+          updateUser: () => Promise.resolve({ data: null, error: null }),
+          onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
+        };
+      }
       return undefined;
     }
     const val = (active as any)[prop];
@@ -2545,5 +2557,430 @@ export async function getSupabaseSession(): Promise<{ session: any | null; user:
     return { session: data.session, user: data.session?.user || null, error: null };
   } catch (err: any) {
     return { session: null, user: null, error: err?.message || null };
+  }
+}
+
+/**
+ * Send an email OTP for registration using Supabase Authentication.
+ * Strictly enforces that public users can only register as 'student' or 'recruiter' (NEVER 'admin').
+ */
+export async function sendRegistrationOtp(
+  email: string,
+  role: 'student' | 'recruiter',
+  metadata: { name: string; enrollmentNumber?: string; companyName?: string }
+): Promise<{ success: boolean; error?: string }> {
+  // Enforce security policy: admin role cannot be self-registered via public signup
+  if (role !== 'student' && role !== 'recruiter') {
+    return { success: false, error: 'Registration is restricted to Student and Recruiter accounts.' };
+  }
+
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+    return { success: false, error: 'Please enter a valid email address.' };
+  }
+
+  const client = getSupabaseClient() || supabase;
+  if (!isSupabaseConfigured || !client) {
+    return {
+      success: false,
+      error: 'Supabase client is not configured. Please ensure your project URL and Anon Key are set.'
+    };
+  }
+
+  try {
+    const { error } = await client.auth.signInWithOtp({
+      email: cleanEmail,
+      options: {
+        shouldCreateUser: true,
+        data: {
+          role,
+          name: metadata.name?.trim() || '',
+          full_name: metadata.name?.trim() || '',
+          enrollment_number: metadata.enrollmentNumber?.trim() || undefined,
+          company_name: metadata.companyName?.trim() || undefined
+        }
+      }
+    });
+
+    if (error) {
+      console.error('[Supabase Auth Send OTP Error]', error);
+      let userFriendlyMsg = error.message;
+      if (error.message.toLowerCase().includes('rate limit')) {
+        userFriendlyMsg = 'Too many requests. Please wait a minute before requesting another OTP.';
+      } else if (error.message.toLowerCase().includes('signups not allowed')) {
+        userFriendlyMsg = 'New registrations are currently disabled in your Supabase Auth project configuration.';
+      } else if (error.message.toLowerCase().includes('invalid email')) {
+        userFriendlyMsg = 'Invalid email address syntax.';
+      }
+      return { success: false, error: userFriendlyMsg };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    console.error('[Supabase Auth Send OTP Exception]', err);
+    return { success: false, error: err?.message || 'Failed to send verification OTP code. Please try again.' };
+  }
+}
+
+/**
+ * Verify the 6-digit email OTP for registration and provision/link the student or recruiter profile
+ * in Supabase Auth and the existing database schema without creating duplicate records.
+ */
+export async function verifyRegistrationOtp(params: {
+  email: string;
+  token: string;
+  role: 'student' | 'recruiter';
+  studentName?: string;
+  enrollmentNumber?: string;
+  recruiterName?: string;
+  companyName?: string;
+}): Promise<{
+  success: boolean;
+  user?: any;
+  profile?: UserProfile;
+  linkedStudent?: Student | null;
+  linkedCompany?: Company | null;
+  error?: string;
+}> {
+  const { email, token, role, studentName, enrollmentNumber, recruiterName, companyName } = params;
+
+  // Strict role security: forbid admin assignment
+  if (role !== 'student' && role !== 'recruiter') {
+    return { success: false, error: 'Registration is strictly allowed for Student or Recruiter.' };
+  }
+
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanToken = (token || '').trim();
+
+  if (!cleanToken || cleanToken.length < 6) {
+    return { success: false, error: 'Please enter the complete 6-digit OTP code.' };
+  }
+
+  const client = getSupabaseClient() || supabase;
+  if (!isSupabaseConfigured || !client) {
+    return { success: false, error: 'Supabase client is not configured.' };
+  }
+
+  try {
+    // 1. Verify OTP with Supabase Auth
+    let verifyRes = await client.auth.verifyOtp({
+      email: cleanEmail,
+      token: cleanToken,
+      type: 'email'
+    });
+
+    // Fallback if the Supabase project configuration expects 'signup'
+    if (verifyRes.error && verifyRes.error.message.toLowerCase().includes('type')) {
+      const retryRes = await client.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: 'signup' as any
+      });
+      if (!retryRes.error) {
+        verifyRes = retryRes;
+      }
+    }
+
+    if (verifyRes.error || !verifyRes.data?.user) {
+      console.error('[Supabase Auth Verify Error]', verifyRes.error);
+      const errMsg = verifyRes.error?.message || 'OTP Verification failed.';
+      const isExpiredOrInvalid =
+        errMsg.toLowerCase().includes('expired') ||
+        errMsg.toLowerCase().includes('invalid') ||
+        errMsg.toLowerCase().includes('token');
+      return {
+        success: false,
+        error: isExpiredOrInvalid
+          ? 'The OTP code you entered is invalid or has expired. Please check your email or click Resend OTP.'
+          : errMsg
+      };
+    }
+
+    const authUser = verifyRes.data.user;
+
+    // 2. Link/create database records based on role using EXISTING schema
+    if (role === 'student') {
+      let linkedStudentId: string | null = null;
+      let linkedStudent: Student | null = null;
+      const cleanEnrollment = (enrollmentNumber || '').trim();
+      const cleanName = (studentName || '').trim() || 'Student';
+
+      // Check if student already exists in public.students by email or enrollment
+      try {
+        const { data: existingRows } = await client
+          .from('students')
+          .select('*');
+
+        const match = (existingRows || []).find((r: any) => {
+          const rowEmail = (r.email || '').trim().toLowerCase();
+          const rowEnroll = (r.enrollment_no || r.enrollment_number || '').trim().toLowerCase();
+          return rowEmail === cleanEmail || (cleanEnrollment && rowEnroll === cleanEnrollment.toLowerCase());
+        });
+
+        if (match) {
+          linkedStudentId = String(match.id);
+          // Keep existing data, fill in name or enrollment if empty
+          if (!match.full_name && cleanName) {
+            await client.from('students').update({ full_name: cleanName }).eq('id', match.id);
+          }
+          if (!match.email && cleanEmail) {
+            await client.from('students').update({ email: cleanEmail }).eq('id', match.id);
+          }
+          linkedStudent = {
+            id: String(match.id),
+            name: match.full_name || match.name || cleanName,
+            enrollmentNumber: match.enrollment_no || match.enrollment_number || cleanEnrollment || '',
+            email: match.email || cleanEmail,
+            phone: match.phone || '',
+            branch: match.branch || 'CSE',
+            cgpa: parseFloat(String(match.cgpa ?? 0)) || 0,
+            backlogs: parseInt(String(match.backlogs ?? 0), 10) || 0,
+            attendance: parseInt(String(match.attendance ?? 75), 10) || 75,
+            placementStatus: match.placement_status || 'Unplaced',
+            offers: Array.isArray(match.offers) ? match.offers : [],
+            graduationYear: parseInt(String(match.graduation_year ?? 2026), 10) || 2026,
+            skills: Array.isArray(match.skills) ? match.skills : []
+          };
+        }
+      } catch (err) {
+        console.warn('Notice checking existing students:', err);
+      }
+
+      // If no student record exists yet, create one using EXISTING student schema
+      if (!linkedStudentId) {
+        const newId = generateUUID();
+        const studentPayload: StudentDbInsert = {
+          enrollment_no: cleanEnrollment || null,
+          full_name: cleanName,
+          email: cleanEmail,
+          branch: 'CSE',
+          cgpa: 0,
+          backlogs: 0,
+          attendance: 75,
+          graduation_year: 2026,
+          placement_status: 'Unplaced'
+        };
+
+        try {
+          const { data: inserted, error: insErr } = await client
+            .from('students')
+            .insert({ id: newId, ...studentPayload })
+            .select()
+            .maybeSingle();
+
+          if (!insErr && inserted) {
+            linkedStudentId = String(inserted.id);
+          } else {
+            // If primary key is auto-generated by database, insert without explicit id
+            const retryIns = await client.from('students').insert(studentPayload).select().maybeSingle();
+            linkedStudentId = retryIns.data?.id ? String(retryIns.data.id) : newId;
+          }
+        } catch (_) {
+          linkedStudentId = newId;
+        }
+
+        linkedStudent = {
+          id: linkedStudentId,
+          name: cleanName,
+          enrollmentNumber: cleanEnrollment,
+          email: cleanEmail,
+          phone: '',
+          branch: 'CSE',
+          cgpa: 0,
+          backlogs: 0,
+          attendance: 75,
+          placementStatus: 'Unplaced',
+          offers: [],
+          graduationYear: 2026,
+          skills: []
+        };
+      }
+
+      // 3. Upsert to public.profiles table
+      const profile: UserProfile = {
+        id: authUser.id,
+        email: cleanEmail,
+        role: 'student',
+        student_id: linkedStudentId,
+        company_id: null,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await client.from('profiles').upsert({
+          id: authUser.id,
+          email: cleanEmail,
+          role: 'student',
+          student_id: linkedStudentId,
+          company_id: null
+        });
+      } catch (e) {
+        console.warn('Notice updating public.profiles:', e);
+      }
+
+      // 4. Update user metadata in Supabase Auth
+      try {
+        await client.auth.updateUser({
+          data: {
+            role: 'student',
+            student_id: linkedStudentId,
+            name: cleanName,
+            full_name: cleanName,
+            enrollment_number: cleanEnrollment
+          }
+        });
+      } catch (_) {}
+
+      return {
+        success: true,
+        user: authUser,
+        profile,
+        linkedStudent
+      };
+    } else {
+      // Role is recruiter
+      let linkedCompanyId: string | null = null;
+      let linkedCompany: Company | null = null;
+      const targetCompName = (companyName || '').trim() || 'Partner Organization';
+      const cleanRecruiterName = (recruiterName || '').trim() || 'Recruiter';
+
+      // Check if company exists in public.companies
+      try {
+        const { data: existingCompanies } = await client
+          .from('companies')
+          .select('*');
+
+        const match = (existingCompanies || []).find((c: any) => {
+          const cName = (c.company_name || c.name || '').trim().toLowerCase();
+          return cName === targetCompName.toLowerCase();
+        });
+
+        if (match) {
+          linkedCompanyId = String(match.id);
+          // Update contact info if missing
+          if (!match.contact_name && cleanRecruiterName) {
+            await client.from('companies').update({ contact_name: cleanRecruiterName, contact_person: cleanRecruiterName }).eq('id', match.id);
+          }
+          if (!match.contact_email && cleanEmail) {
+            await client.from('companies').update({ contact_email: cleanEmail }).eq('id', match.id);
+          }
+          linkedCompany = {
+            id: String(match.id),
+            name: match.company_name || match.name || targetCompName,
+            industry: match.industry || 'Technology',
+            tier: match.tier || 'Core',
+            openDrivesCount: match.open_drives_count ?? 0,
+            averagePackage: match.average_package ?? 0,
+            minPackage: match.min_package ?? 0,
+            maxPackage: match.max_package ?? 0,
+            status: match.status || 'Active',
+            website: match.website || '',
+            location: match.location || 'Bangalore, India',
+            totalHiredHistory: match.total_hired_history ?? 0,
+            logo: match.logo || 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=100&auto=format&fit=crop&q=60',
+            contactPerson: cleanRecruiterName || match.contact_person || match.contact_name || '',
+            contactEmail: cleanEmail || match.contact_email || ''
+          };
+        }
+      } catch (err) {
+        console.warn('Notice checking existing companies:', err);
+      }
+
+      // If company doesn't exist, insert using EXISTING company schema
+      if (!linkedCompanyId) {
+        const newCompId = generateUUID();
+        const compPayload = {
+          id: newCompId,
+          company_name: targetCompName,
+          industry: 'Technology',
+          tier: 'Core',
+          status: 'Active',
+          contact_name: cleanRecruiterName,
+          contact_person: cleanRecruiterName,
+          contact_email: cleanEmail,
+          website: null
+        };
+
+        try {
+          const { data: insComp, error: compErr } = await client
+            .from('companies')
+            .insert(compPayload)
+            .select()
+            .maybeSingle();
+
+          if (!compErr && insComp) {
+            linkedCompanyId = String(insComp.id);
+          } else {
+            linkedCompanyId = newCompId;
+          }
+        } catch (_) {
+          linkedCompanyId = newCompId;
+        }
+
+        linkedCompany = {
+          id: linkedCompanyId,
+          name: targetCompName,
+          industry: 'Technology',
+          tier: 'Core',
+          openDrivesCount: 0,
+          averagePackage: 0,
+          minPackage: 0,
+          maxPackage: 0,
+          status: 'Active',
+          website: '',
+          location: 'Bangalore, India',
+          totalHiredHistory: 0,
+          logo: 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=100&auto=format&fit=crop&q=60',
+          contactPerson: cleanRecruiterName,
+          contactEmail: cleanEmail
+        };
+      }
+
+      // Upsert to public.profiles
+      const profile: UserProfile = {
+        id: authUser.id,
+        email: cleanEmail,
+        role: 'recruiter',
+        student_id: null,
+        company_id: linkedCompanyId,
+        created_at: new Date().toISOString()
+      };
+
+      try {
+        await client.from('profiles').upsert({
+          id: authUser.id,
+          email: cleanEmail,
+          role: 'recruiter',
+          student_id: null,
+          company_id: linkedCompanyId
+        });
+      } catch (e) {
+        console.warn('Notice writing recruiter profile to public.profiles:', e);
+      }
+
+      // Update user metadata in Supabase Auth
+      try {
+        await client.auth.updateUser({
+          data: {
+            role: 'recruiter',
+            company_id: linkedCompanyId,
+            company_name: targetCompName,
+            name: cleanRecruiterName,
+            full_name: cleanRecruiterName
+          }
+        });
+      } catch (_) {}
+
+      return {
+        success: true,
+        user: authUser,
+        profile,
+        linkedCompany
+      };
+    }
+  } catch (err: any) {
+    console.error('[Supabase Auth Verify Exception]', err);
+    return { success: false, error: err?.message || 'Verification failed. Please try again.' };
   }
 }

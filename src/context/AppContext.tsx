@@ -59,7 +59,9 @@ import {
   upsertOfferToSupabase,
   updateOfferStatusInSupabase,
   upsertPolicyToSupabase,
-  fetchUserProfile
+  fetchUserProfile,
+  sendRegistrationOtp,
+  verifyRegistrationOtp
 } from '../lib/supabase';
 import {
   checkEligibility,
@@ -83,6 +85,20 @@ interface AppContextType {
   isLoadingAuth: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  sendRegistrationOtp: (
+    email: string,
+    role: 'student' | 'recruiter',
+    metadata: { name: string; enrollmentNumber?: string; companyName?: string }
+  ) => Promise<{ success: boolean; error?: string }>;
+  registerWithOtp: (params: {
+    email: string;
+    token: string;
+    role: 'student' | 'recruiter';
+    studentName?: string;
+    enrollmentNumber?: string;
+    recruiterName?: string;
+    companyName?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
 
   // Role & Navigation
   currentRole: UserRole;
@@ -510,6 +526,63 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedCompanyId(null);
     setCurrentView('login');
     addToast('Signed Out', 'You have been signed out successfully.', 'info');
+  };
+
+  // Secure Supabase Email OTP Registration Flow (Student / Recruiter only)
+  const sendRegistrationOtpAction = async (
+    email: string,
+    role: 'student' | 'recruiter',
+    metadata: { name: string; enrollmentNumber?: string; companyName?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    return await sendRegistrationOtp(email, role, metadata);
+  };
+
+  const registerWithOtpAction = async (params: {
+    email: string;
+    token: string;
+    role: 'student' | 'recruiter';
+    studentName?: string;
+    enrollmentNumber?: string;
+    recruiterName?: string;
+    companyName?: string;
+  }): Promise<{ success: boolean; error?: string }> => {
+    const res = await verifyRegistrationOtp(params);
+    if (!res.success || !res.user || !res.profile) {
+      return { success: false, error: res.error || 'Registration verification failed.' };
+    }
+
+    // Synchronize local memory state so immediate redirects reflect changes
+    if (res.linkedStudent) {
+      setStudents(prev => {
+        const exists = prev.some(s => s.id === res.linkedStudent!.id || s.email?.toLowerCase() === res.linkedStudent!.email?.toLowerCase());
+        return exists ? prev.map(s => s.id === res.linkedStudent!.id ? res.linkedStudent! : s) : [res.linkedStudent!, ...prev];
+      });
+    }
+
+    if (res.linkedCompany) {
+      setCompanies(prev => {
+        const exists = prev.some(c => c.id === res.linkedCompany!.id || c.name.toLowerCase() === res.linkedCompany!.name.toLowerCase());
+        return exists ? prev.map(c => c.id === res.linkedCompany!.id ? res.linkedCompany! : c) : [res.linkedCompany!, ...prev];
+      });
+    }
+
+    setCurrentUser(res.user);
+    setUserProfile(res.profile);
+    setCurrentRole(res.profile.role);
+
+    if (res.profile.role === 'student') {
+      setActiveStudentId(res.profile.student_id);
+      setSelectedCompanyId(null);
+      setCurrentView('student-portal');
+      addToast('Registration Successful', `Welcome to PlaceFlow Student Portal, ${params.studentName || 'Student'}!`, 'success');
+    } else if (res.profile.role === 'recruiter') {
+      setSelectedCompanyId(res.profile.company_id);
+      setActiveStudentId(null);
+      setCurrentView('recruiter-portal');
+      addToast('Registration Successful', `Welcome to PlaceFlow Corporate Recruiter Console, ${params.recruiterName || 'Partner'}!`, 'success');
+    }
+
+    return { success: true };
   };
 
   // Check Supabase connection on boot & optionally fetch remote data
@@ -1459,6 +1532,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isLoadingAuth,
         login,
         logout,
+        sendRegistrationOtp: sendRegistrationOtpAction,
+        registerWithOtp: registerWithOtpAction,
         currentRole,
         setCurrentRole,
         currentView,

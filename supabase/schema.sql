@@ -176,13 +176,25 @@ INSERT INTO public.offer_policy (
     true
 ) ON CONFLICT (id) DO NOTHING;
 
--- 8. Row Level Security (RLS) Configuration
+-- 8. User Profiles Table (Maps Supabase Auth UUID to Student or Recruiter Company)
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY,
+    email TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('admin', 'student', 'recruiter')),
+    student_id TEXT,
+    company_id TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 9. Row Level Security (RLS) Configuration
 ALTER TABLE public.students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.placement_drives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offer_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read and write access for authenticated & anon clients in PlaceFlow
 DROP POLICY IF EXISTS "Public access to students" ON public.students;
@@ -203,7 +215,10 @@ CREATE POLICY "Public access to offers" ON public.offers FOR ALL USING (true) WI
 DROP POLICY IF EXISTS "Public access to offer_policy" ON public.offer_policy;
 CREATE POLICY "Public access to offer_policy" ON public.offer_policy FOR ALL USING (true) WITH CHECK (true);
 
--- 9. Analytics View for NIRF & Real-time KPIs
+DROP POLICY IF EXISTS "Public access to profiles" ON public.profiles;
+CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+-- 10. Analytics View for NIRF & Real-time KPIs
 CREATE OR REPLACE VIEW public.nirf_placement_summary AS
 SELECT
     s.branch,
