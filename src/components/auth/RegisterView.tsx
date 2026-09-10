@@ -12,7 +12,9 @@ import {
   CheckCircle2,
   AlertCircle,
   RotateCw,
-  Edit3
+  Edit3,
+  Shield,
+  Sparkles
 } from 'lucide-react';
 
 interface RegisterViewProps {
@@ -20,7 +22,16 @@ interface RegisterViewProps {
 }
 
 export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => {
-  const { sendRegistrationOtp, registerWithOtp, companies } = useApp();
+  const {
+    sendRegistrationOtp,
+    registerWithOtp,
+    companies,
+    setCurrentRole,
+    setActiveStudentId,
+    setSelectedCompanyId,
+    setCurrentView,
+    addToast
+  } = useApp();
 
   // Role can ONLY be 'student' or 'recruiter'. Never 'admin'.
   const [accountType, setAccountType] = useState<'student' | 'recruiter'>('student');
@@ -43,6 +54,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
   const [isVerifyingOtp, setIsVerifyingOtp] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState<boolean>(false);
 
   // Input refs for the 6 OTP boxes
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -106,9 +118,13 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
 
         if (!res.success) {
           setErrorMessage(res.error || 'Failed to send OTP. Please check your credentials.');
+          if (res.isRateLimit || res.error?.toLowerCase().includes('rate limit')) {
+            setIsRateLimited(true);
+          }
           return;
         }
 
+        setIsRateLimited(false);
         setStep(2);
         setCountdown(60);
         setOtpDigits(['', '', '', '', '', '']);
@@ -146,9 +162,13 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
 
         if (!res.success) {
           setErrorMessage(res.error || 'Failed to send OTP. Please check your credentials.');
+          if (res.isRateLimit || res.error?.toLowerCase().includes('rate limit')) {
+            setIsRateLimited(true);
+          }
           return;
         }
 
+        setIsRateLimited(false);
         setStep(2);
         setCountdown(60);
         setOtpDigits(['', '', '', '', '', '']);
@@ -179,7 +199,12 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
 
       if (!res.success) {
         setErrorMessage(res.error || 'Unable to resend OTP at this time.');
+        if (res.isRateLimit || res.error?.toLowerCase().includes('rate limit')) {
+          setIsRateLimited(true);
+          setCountdown(60);
+        }
       } else {
+        setIsRateLimited(false);
         setCountdown(60);
         setSuccessMessage(`A new verification code was sent to ${activeEmail}`);
       }
@@ -352,10 +377,32 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
           {errorMessage && (
             <div
               id="register-step1-error-alert"
-              className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-start gap-2.5 text-rose-700 dark:text-rose-300 text-xs font-semibold"
+              className="p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex flex-col gap-2 text-rose-700 dark:text-rose-300 text-xs font-semibold"
             >
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
-              <div>{errorMessage}</div>
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600 dark:text-rose-400" />
+                <div className="leading-relaxed">{errorMessage}</div>
+              </div>
+              {isRateLimited && (
+                <div className="pt-2 mt-1 border-t border-rose-200/80 dark:border-rose-800/80 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[11px] text-rose-600 dark:text-rose-400 font-normal">
+                    Already received a 6-digit code in your email earlier?
+                  </span>
+                  <button
+                    type="button"
+                    id="register-enter-existing-otp-btn"
+                    onClick={() => {
+                      setStep(2);
+                      setErrorMessage(null);
+                      setIsRateLimited(false);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <span>Enter 6-Digit Code</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -536,6 +583,22 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
                 </>
               )}
             </button>
+
+            {/* Direct Step 2 switch if user already has code */}
+            <div className="text-center pt-0.5">
+              <button
+                type="button"
+                id="register-skip-to-code-btn"
+                onClick={() => {
+                  setStep(2);
+                  setErrorMessage(null);
+                  setIsRateLimited(false);
+                }}
+                className="text-xs text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline cursor-pointer"
+              >
+                Already have a verification code? Enter code directly &rarr;
+              </button>
+            </div>
           </form>
 
           {/* Already have an account? Login */}
@@ -551,6 +614,63 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
                 Login
               </button>
             </p>
+          </div>
+
+          {/* Quick Demo Access for Hackathon Testing */}
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 mb-2 text-slate-500 dark:text-slate-400">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">
+                Hackathon Demo Testing (1-Click Access)
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                id="register-quick-demo-admin"
+                onClick={() => {
+                  setCurrentRole('admin');
+                  setActiveStudentId(null);
+                  setSelectedCompanyId(null);
+                  setCurrentView('dashboard');
+                  addToast('Demo Admin Access', 'Signed in as Head of T&P Cell', 'success');
+                }}
+                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Shield className="w-3.5 h-3.5 text-blue-600" />
+                <span>Admin</span>
+              </button>
+              <button
+                type="button"
+                id="register-quick-demo-student"
+                onClick={() => {
+                  setCurrentRole('student');
+                  setActiveStudentId('std-1');
+                  setSelectedCompanyId(null);
+                  setCurrentView('student-portal');
+                  addToast('Demo Student Access', 'Signed in as Raghav Sharma (std-1)', 'success');
+                }}
+                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Student</span>
+              </button>
+              <button
+                type="button"
+                id="register-quick-demo-recruiter"
+                onClick={() => {
+                  setCurrentRole('recruiter');
+                  setActiveStudentId(null);
+                  setSelectedCompanyId('c-1');
+                  setCurrentView('recruiter-console');
+                  addToast('Demo Recruiter Access', 'Signed in as Priya Patel (Google)', 'success');
+                }}
+                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Recruiter</span>
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -715,6 +835,63 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onBackToLogin }) => 
                 Login
               </button>
             </p>
+          </div>
+
+          {/* Quick Demo Access for Hackathon Testing */}
+          <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-1.5 mb-2 text-slate-500 dark:text-slate-400">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[11px] font-bold uppercase tracking-wider">
+                Hackathon Demo Testing (1-Click Access)
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                id="register-step2-quick-demo-admin"
+                onClick={() => {
+                  setCurrentRole('admin');
+                  setActiveStudentId(null);
+                  setSelectedCompanyId(null);
+                  setCurrentView('dashboard');
+                  addToast('Demo Admin Access', 'Signed in as Head of T&P Cell', 'success');
+                }}
+                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-950/50 hover:border-blue-300 dark:hover:border-blue-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Shield className="w-3.5 h-3.5 text-blue-600" />
+                <span>Admin</span>
+              </button>
+              <button
+                type="button"
+                id="register-step2-quick-demo-student"
+                onClick={() => {
+                  setCurrentRole('student');
+                  setActiveStudentId('std-1');
+                  setSelectedCompanyId(null);
+                  setCurrentView('student-portal');
+                  addToast('Demo Student Access', 'Signed in as Raghav Sharma (std-1)', 'success');
+                }}
+                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-emerald-50 dark:hover:bg-emerald-950/50 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Student</span>
+              </button>
+              <button
+                type="button"
+                id="register-step2-quick-demo-recruiter"
+                onClick={() => {
+                  setCurrentRole('recruiter');
+                  setActiveStudentId(null);
+                  setSelectedCompanyId('c-1');
+                  setCurrentView('recruiter-console');
+                  addToast('Demo Recruiter Access', 'Signed in as Priya Patel (Google)', 'success');
+                }}
+                className="py-2 px-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold hover:bg-indigo-50 dark:hover:bg-indigo-950/50 hover:border-indigo-300 dark:hover:border-indigo-700 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Recruiter</span>
+              </button>
+            </div>
           </div>
         </>
       )}

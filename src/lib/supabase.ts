@@ -2568,7 +2568,7 @@ export async function sendRegistrationOtp(
   email: string,
   role: 'student' | 'recruiter',
   metadata: { name: string; enrollmentNumber?: string; companyName?: string }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; isRateLimit?: boolean }> {
   // Enforce security policy: admin role cannot be self-registered via public signup
   if (role !== 'student' && role !== 'recruiter') {
     return { success: false, error: 'Registration is restricted to Student and Recruiter accounts.' };
@@ -2604,21 +2604,26 @@ export async function sendRegistrationOtp(
     });
 
     if (error) {
-      console.error('[Supabase Auth Send OTP Error]', error);
+      console.warn('[Supabase Auth Send OTP Notice]', error.message);
+      const isRateLimit =
+        error.message.toLowerCase().includes('rate limit') ||
+        (error as any)?.status === 429;
+
       let userFriendlyMsg = error.message;
-      if (error.message.toLowerCase().includes('rate limit')) {
-        userFriendlyMsg = 'Too many requests. Please wait a minute before requesting another OTP.';
+      if (isRateLimit) {
+        userFriendlyMsg =
+          'Email rate limit reached. Supabase free tier limits how frequently emails can be dispatched. If a 6-digit code was already sent to your email, you can enter it directly; otherwise please wait 60 seconds before requesting another code.';
       } else if (error.message.toLowerCase().includes('signups not allowed')) {
         userFriendlyMsg = 'New registrations are currently disabled in your Supabase Auth project configuration.';
       } else if (error.message.toLowerCase().includes('invalid email')) {
         userFriendlyMsg = 'Invalid email address syntax.';
       }
-      return { success: false, error: userFriendlyMsg };
+      return { success: false, error: userFriendlyMsg, isRateLimit };
     }
 
     return { success: true };
   } catch (err: any) {
-    console.error('[Supabase Auth Send OTP Exception]', err);
+    console.warn('[Supabase Auth Send OTP Exception]', err?.message || err);
     return { success: false, error: err?.message || 'Failed to send verification OTP code. Please try again.' };
   }
 }
@@ -2683,7 +2688,7 @@ export async function verifyRegistrationOtp(params: {
     }
 
     if (verifyRes.error || !verifyRes.data?.user) {
-      console.error('[Supabase Auth Verify Error]', verifyRes.error);
+      console.warn('[Supabase Auth Verify Notice]', verifyRes.error?.message);
       const errMsg = verifyRes.error?.message || 'OTP Verification failed.';
       const isExpiredOrInvalid =
         errMsg.toLowerCase().includes('expired') ||
@@ -2980,7 +2985,7 @@ export async function verifyRegistrationOtp(params: {
       };
     }
   } catch (err: any) {
-    console.error('[Supabase Auth Verify Exception]', err);
+    console.warn('[Supabase Auth Verify Exception]', err?.message || err);
     return { success: false, error: err?.message || 'Verification failed. Please try again.' };
   }
 }

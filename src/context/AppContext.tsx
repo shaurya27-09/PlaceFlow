@@ -89,7 +89,7 @@ interface AppContextType {
     email: string,
     role: 'student' | 'recruiter',
     metadata: { name: string; enrollmentNumber?: string; companyName?: string }
-  ) => Promise<{ success: boolean; error?: string }>;
+  ) => Promise<{ success: boolean; error?: string; isRateLimit?: boolean }>;
   registerWithOtp: (params: {
     email: string;
     token: string;
@@ -533,7 +533,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     email: string,
     role: 'student' | 'recruiter',
     metadata: { name: string; enrollmentNumber?: string; companyName?: string }
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<{ success: boolean; error?: string; isRateLimit?: boolean }> => {
     return await sendRegistrationOtp(email, role, metadata);
   };
 
