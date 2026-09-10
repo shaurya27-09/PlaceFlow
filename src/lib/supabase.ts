@@ -508,8 +508,8 @@ export async function fetchAllFromSupabase(): Promise<{
     if (studentsRes.status === 'fulfilled' && studentsRes.value.data) {
       result.students = studentsRes.value.data.map((row: DbStudentRow | any) => ({
         id: String(row.id),
-        name: row.full_name || 'Student',
-        enrollmentNumber: row.enrollment_no || '',
+        name: row.full_name || row.name || 'Student',
+        enrollmentNumber: row.enrollment_no || row.enrollment_number || '',
         email: row.email || '',
         phone: '',
         branch: (row.branch || 'CSE') as Branch,
@@ -821,8 +821,8 @@ export async function fetchStudentsFromSupabase(): Promise<{ data?: Student[]; e
 
     const students: Student[] = (data || []).map((row: DbStudentRow | any) => ({
       id: String(row.id),
-      name: row.full_name || 'Student',
-      enrollmentNumber: row.enrollment_no || '',
+      name: row.full_name || row.name || 'Student',
+      enrollmentNumber: row.enrollment_no || row.enrollment_number || '',
       email: row.email || '',
       phone: '',
       branch: (row.branch || 'CSE') as Branch,
