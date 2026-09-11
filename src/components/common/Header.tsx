@@ -127,7 +127,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
   };
 
   return (
-    <header className={`sticky top-0 ${showProfileModal || showSupabaseModal ? 'z-[9999]' : 'z-40'} w-full max-w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors duration-200`}>
+    <header className={`sticky top-0 ${showProfileModal || showSupabaseModal ? 'z-[9999]' : 'z-40'} w-full max-w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
         {/* Left: Brand Logo & Title with Active Drives Pill */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
