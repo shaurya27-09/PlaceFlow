@@ -18,6 +18,8 @@ export default async function handler(req: any, res: any) {
     let targetUrl = String(rawTargetUrl).trim();
     if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
       targetUrl = `${supabaseUrl.replace(/\/+$/, '')}${targetUrl}`;
+    } else if (!targetUrl.startsWith(supabaseUrl)) {
+      return res.status(403).json({ error: 'Proxy restricted to configured Supabase project' });
     }
 
     const forwardHeaders: Record<string, string> = {};

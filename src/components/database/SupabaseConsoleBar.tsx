@@ -3,7 +3,6 @@ import { useApp } from '../../context/AppContext';
 import {
   supabase,
   isSupabaseConfigured,
-  getSupabaseCredentials,
   testSupabaseConnection
 } from '../../lib/supabase';
 import {
@@ -20,10 +19,8 @@ import {
   Zap,
   Code2,
   X,
-  Radio,
-  Sliders
+  Radio
 } from 'lucide-react';
-import { SupabaseModal } from './SupabaseModal';
 
 interface SupabaseConsoleBarProps {
   className?: string;
@@ -50,23 +47,19 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
-  const [showModal, setShowModal] = useState(false);
   const [latencyMs, setLatencyMs] = useState<number | null>(48);
   const [isTesting, setIsTesting] = useState(false);
-  const creds = getSupabaseCredentials();
-  const maskedUrl = creds.url
-    ? creds.url.replace(/^https?:\/\//, '').replace(/\.supabase\.co.*$/, '.supabase.co')
-    : 'Local Storage Mode';
+  const maskedUrl = isSupabaseConfigured ? 'Supabase Project Active' : 'Supabase Client Ready';
 
   const [consoleLogs, setConsoleLogs] = useState<Array<{ timestamp: string; type: 'info' | 'success' | 'warn' | 'query'; message: string }>>([
     {
       timestamp: new Date().toLocaleTimeString(),
       type: 'info',
-      message: creds.url
-        ? `Supabase client configured with endpoint ${creds.url}`
-        : 'PlaceFlow operational in local reactive mode. Connect Supabase to enable cloud persistence.'
+      message: isSupabaseConfigured
+        ? 'Supabase client initialized securely from environment configuration.'
+        : 'PlaceFlow operational in secure environment mode.'
     },
-    { timestamp: new Date().toLocaleTimeString(), type: 'info', message: 'Local schema [students, placement_drives, offers, companies] ready' }
+    { timestamp: new Date().toLocaleTimeString(), type: 'info', message: 'Schema [students, placement_drives, offers, companies] active' }
   ]);
 
   const addConsoleLog = (type: 'info' | 'success' | 'warn' | 'query', message: string) => {
@@ -156,7 +149,6 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
             </div>
           </div>
         </aside>
-        <SupabaseModal isOpen={showModal} onClose={() => setShowModal(false)} />
       </>
     );
   }
@@ -253,18 +245,6 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
               >
                 <Code2 className="w-3.5 h-3.5 text-blue-400" />
                 <span>Logs ({consoleLogs.length})</span>
-              </button>
-
-              {/* Configure / Full Modal */}
-              <button
-                type="button"
-                id="supabase-console-config-btn"
-                onClick={() => setShowModal(true)}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700/80 text-[11px] font-mono font-semibold transition-all flex items-center gap-1.5 cursor-pointer"
-                title="Open Supabase settings & SQL schema generator"
-              >
-                <Sliders className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden sm:inline">Settings</span>
               </button>
 
               {/* Expand/Collapse metrics */}
@@ -389,9 +369,6 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
           )}
         </div>
       </aside>
-
-      {/* Supabase Full Configuration Modal */}
-      <SupabaseModal isOpen={showModal} onClose={() => setShowModal(false)} />
     </>
   );
 };

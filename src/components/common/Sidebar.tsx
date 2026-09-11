@@ -23,7 +23,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen
 } from 'lucide-react';
-import { SupabaseModal } from '../database/SupabaseModal';
 
 interface SidebarProps {
   onOpenCreateDrive?: () => void;
@@ -45,7 +44,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenCreateDrive }) => {
     currentUser,
     logout
   } = useApp();
-  const [showDbModal, setShowDbModal] = React.useState(false);
   const [isCollapsed, setIsCollapsed] = React.useState(false);
 
   const activeDrivesCount = (drives || []).filter(d => d.status === 'Active' || d.status === 'Ongoing').length;
@@ -115,13 +113,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenCreateDrive }) => {
       label: 'Student Portal',
       icon: GraduationCap,
       badge: 'Live'
-    },
-    {
-      id: 'database-settings',
-      label: 'Database Settings',
-      icon: Database,
-      badge: isSupabaseConfigured ? 'Live' : 'Config',
-      badgeColor: isSupabaseConfigured ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
     }
   ];
 
@@ -131,7 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenCreateDrive }) => {
       aria-label="Desktop Navigation Sidebar"
       className={`hidden lg:flex ${
         isCollapsed ? 'w-16 p-2.5' : 'w-56 xl:w-60 p-3.5'
-      } shrink-0 bg-white dark:bg-slate-900 flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs dark:shadow-xl text-slate-700 dark:text-slate-300 transition-all duration-200 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto no-scrollbar relative z-30 ${showDbModal ? 'relative z-[9999]' : ''}`}
+      } shrink-0 bg-white dark:bg-slate-900 flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs dark:shadow-xl text-slate-700 dark:text-slate-300 transition-all duration-200 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto no-scrollbar relative z-30`}
     >
       <div className="space-y-3">
         {/* Collapse / Expand Toggle Button */}
@@ -251,34 +242,31 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenCreateDrive }) => {
           )}
         </div>
 
-        {/* Supabase Database Button */}
-        <button
-          id="sidebar-supabase-modal-btn"
-          onClick={() => setShowDbModal(true)}
-          title={isCollapsed ? 'Supabase Database Configuration' : undefined}
+        {/* Supabase Database Status Indicator */}
+        <div
+          id="sidebar-supabase-status"
+          title={isCollapsed ? (supabaseConnected ? 'Supabase Connected' : 'Supabase Operational') : undefined}
           className={`w-full flex items-center ${
             isCollapsed ? 'justify-center p-2' : 'justify-between p-2'
-          } rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs transition-colors cursor-pointer`}
+          } rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs select-none`}
         >
           <div className="flex items-center gap-2 min-w-0">
             <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            {!isCollapsed && <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">Supabase DB</span>}
+            {!isCollapsed && <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">Supabase</span>}
           </div>
           {!isCollapsed && (
             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
-              isSupabaseConfigured
-                ? supabaseConnected
-                  ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
+              isSupabaseConfigured && supabaseConnected
+                ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                : isSupabaseConfigured
+                  ? 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
+                  : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400'
             }`}>
-              {isSupabaseConfigured ? (supabaseConnected ? 'Live' : 'Check') : 'Setup'}
+              {supabaseConnected ? 'Connected' : 'Active'}
             </span>
           )}
-        </button>
+        </div>
       </div>
-
-      <SupabaseModal isOpen={showDbModal} onClose={() => setShowDbModal(false)} />
     </aside>
   );
 };

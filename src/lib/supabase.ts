@@ -27,16 +27,22 @@ import {
 // Canonical Supabase Project URL (plwslckyaxdkjultrlca)
 export const DEFAULT_SUPABASE_URL = 'https://plwslckyaxdkjultrlca.supabase.co';
 
-// Read configuration from environment variables and browser storage
-const viteSupabaseUrl = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.SUPABASE_URL)) ||
+// Purge any legacy browser storage overrides immediately on module load
+if (typeof localStorage !== 'undefined') {
+  try {
+    localStorage.removeItem('placeflow_supabase_url');
+    localStorage.removeItem('placeflow_supabase_anon_key');
+  } catch (_) {}
+}
+
+// Single Source of Truth: Read configuration exclusively from environment variables
+const envSupabaseUrl = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.SUPABASE_URL)) ||
   (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL)) || DEFAULT_SUPABASE_URL;
-const viteSupabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.SUPABASE_ANON_KEY)) ||
+
+const envSupabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.SUPABASE_ANON_KEY)) ||
   (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_ANON_KEY || process.env?.SUPABASE_ANON_KEY)) || '';
 
-export const DEFAULT_SUPABASE_ANON_KEY = viteSupabaseAnonKey;
-
-// Required debugging log (Supabase URL only, anon key is NEVER logged)
-console.log("Supabase URL:", viteSupabaseUrl || DEFAULT_SUPABASE_URL);
+export const DEFAULT_SUPABASE_ANON_KEY = envSupabaseAnonKey;
 
 /**
  * Normalizes and cleans Supabase Project URLs
@@ -61,75 +67,53 @@ export function normalizeSupabaseUrl(rawUrl: string): string {
   return url;
 }
 
+export const supabaseUrl: string = normalizeSupabaseUrl(envSupabaseUrl);
+export const supabaseAnonKey: string = (envSupabaseAnonKey || '').trim();
+
+/**
+ * Returns the immutable environment-configured Supabase credentials.
+ * User-side overrides from localStorage, sessionStorage, query parameters,
+ * or UI forms are strictly prohibited.
+ */
 export function getSupabaseCredentials(): { url: string; anonKey: string } {
-  let storedUrl = '';
-  let storedAnonKey = '';
-  try {
-    if (typeof localStorage !== 'undefined') {
-      storedUrl = (localStorage.getItem('placeflow_supabase_url') || '').trim();
-      storedAnonKey = (localStorage.getItem('placeflow_supabase_anon_key') || '').trim();
-
-      // Auto-migrate legacy typo in browser storage
-      if (storedUrl.includes('plwsickyaxdkjultrlca')) {
-        storedUrl = storedUrl.replace('plwsickyaxdkjultrlca', 'plwslckyaxdkjultrlca');
-        localStorage.setItem('placeflow_supabase_url', storedUrl);
-      }
-      if (storedAnonKey.includes('8mbX-iQ51g28y13l2q3j9k8h0g9f8e7d6c5b4a3z2y1')) {
-        localStorage.removeItem('placeflow_supabase_anon_key');
-        storedAnonKey = '';
-      }
-    }
-  } catch (_) {}
-
-  const rawUrl = (storedUrl || viteSupabaseUrl || DEFAULT_SUPABASE_URL).trim();
-  const url = normalizeSupabaseUrl(rawUrl);
-  const anonKey = (storedAnonKey || viteSupabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY).trim();
-
   return {
-    url,
-    anonKey
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey
   };
 }
 
-export function saveSupabaseCredentials(url: string, anonKey: string): void {
-  try {
-    const cleanUrl = normalizeSupabaseUrl(url);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('placeflow_supabase_url', cleanUrl);
-      localStorage.setItem('placeflow_supabase_anon_key', anonKey.trim());
-    }
-    cachedClient = null;
-  } catch (_) {}
+/**
+ * Deprecated / Disallowed: Credential overrides are permanently blocked.
+ */
+export function saveSupabaseCredentials(_url: string, _anonKey: string): void {
+  console.warn('[Security] Supabase credential overrides via UI or browser storage are disabled.');
 }
 
+/**
+ * Enforces removal of any residual credentials from browser storage.
+ */
 export function clearSupabaseCredentials(): void {
-  try {
-    if (typeof localStorage !== 'undefined') {
+  if (typeof localStorage !== 'undefined') {
+    try {
       localStorage.removeItem('placeflow_supabase_url');
       localStorage.removeItem('placeflow_supabase_anon_key');
-    }
-    cachedClient = null;
-  } catch (_) {}
+    } catch (_) {}
+  }
 }
 
 export function checkIsSupabaseConfigured(): boolean {
-  const creds = getSupabaseCredentials();
   return Boolean(
-    creds.url &&
-    creds.anonKey &&
-    creds.url.startsWith('http') &&
-    !creds.url.includes('placeholder') &&
-    !creds.url.includes('MY_APP_URL') &&
-    !creds.url.includes('plwsickyaxdkjultrlca') &&
-    !creds.anonKey.includes('placeholder') &&
-    !creds.anonKey.includes('8mbX-iQ51g28y13l2q3j9k8h0g9f8e7d6c5b4a3z2y1') &&
-    creds.anonKey.length > 15
+    supabaseUrl &&
+    supabaseAnonKey &&
+    supabaseUrl.startsWith('http') &&
+    !supabaseUrl.includes('placeholder') &&
+    !supabaseUrl.includes('MY_APP_URL') &&
+    !supabaseUrl.includes('plwsickyaxdkjultrlca') &&
+    !supabaseAnonKey.includes('placeholder') &&
+    supabaseAnonKey.length > 15
   );
 }
 
-const initialCreds = getSupabaseCredentials();
-export const supabaseUrl: string = initialCreds.url;
-export const supabaseAnonKey: string = initialCreds.anonKey;
 export const isSupabaseConfigured: boolean = checkIsSupabaseConfigured();
 
 /**
@@ -163,18 +147,17 @@ async function ensureJsonResponse(resp: Response, targetUrl: string): Promise<Re
         !resp.ok;
       
       const cleanMessage = isPausedOrError
-        ? `Supabase host returned HTML (HTTP ${resp.status}). The project is likely PAUSED in your Supabase dashboard or the URL is invalid.`
-        : `Supabase endpoint returned an HTML page (HTTP ${resp.status}). Verify your Supabase URL (https://<project-ref>.supabase.co).`;
+        ? `Supabase host returned HTML (HTTP ${resp.status}). The project is likely PAUSED in your Supabase dashboard or inaccessible.`
+        : `Supabase endpoint returned an HTML page (HTTP ${resp.status}). Verify your Supabase project status in your Supabase dashboard.`;
 
       return new Response(
         JSON.stringify({
           error: 'invalid_json_response',
           error_description: cleanMessage,
           message: cleanMessage,
-          hint: 'Verify the Supabase Project URL in Settings (https://<project-id>.supabase.co) and unpause the project in your Supabase dashboard.',
+          hint: 'Verify that your Supabase project is active and unpaused in your Supabase dashboard.',
           code: 'UPSTREAM_HTML_RECEIVED',
-          status: resp.status,
-          requestedUrl: targetUrl
+          status: resp.status
         }),
         {
           status: resp.ok && isHtmlOrXml ? 502 : resp.status,
@@ -408,7 +391,7 @@ export async function testSupabaseConnection(): Promise<{
       ) {
         return {
           success: false,
-          message: `Unable to reach Supabase project at ${creds.url}. Host DNS lookup failed or project is paused.`,
+          message: 'Unable to reach Supabase project. Host DNS lookup failed or project is paused.',
           hint: 'Check your Supabase dashboard (https://supabase.com/dashboard) to unpause or restore your project.'
         };
       }
@@ -1869,7 +1852,7 @@ export interface SupabaseDiagnosticInfo {
   details?: string;
   hint?: string;
   code?: string;
-  url: string;
+  url?: string;
 }
 
 export async function fetchOffersFromSupabase(): Promise<{ data?: Offer[]; error?: string; diagnostic?: SupabaseDiagnosticInfo }> {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { SupabaseModal } from '../database/SupabaseModal';
 import {
   Sun,
   Moon,
@@ -55,7 +54,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
-  const [showSupabaseModal, setShowSupabaseModal] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -127,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
   };
 
   return (
-    <header className={`sticky top-0 ${showProfileModal || showSupabaseModal ? 'z-[9999]' : 'z-40'} w-full max-w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200`}>
+    <header className={`sticky top-0 ${showProfileModal ? 'z-[9999]' : 'z-40'} w-full max-w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors duration-200`}>
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
         {/* Left: Brand Logo & Title with Active Drives Pill */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink-0">
@@ -310,25 +308,24 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
             )}
           </div>
 
-          {/* Supabase Database Button */}
-          <button
-            id="supabase-db-button"
-            onClick={() => setShowSupabaseModal(true)}
-            className={`p-2 rounded-xl transition-colors flex items-center gap-1 text-xs font-semibold ${
-              isSupabaseConfigured
-                ? supabaseConnected
-                  ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800'
-                  : 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 border border-amber-200 dark:border-amber-800'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800'
+          {/* Supabase Database Status Indicator */}
+          <div
+            id="supabase-status-indicator"
+            className={`px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 text-xs font-semibold select-none ${
+              isSupabaseConfigured && supabaseConnected
+                ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800'
+                : isSupabaseConfigured
+                  ? 'text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800'
+                  : 'text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800'
             }`}
-            title="Supabase PostgreSQL Database Configuration & Sync"
-            aria-label="Database Settings"
+            title={supabaseConnected ? 'Supabase Connected' : 'Supabase Operational'}
           >
-            <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span className={`w-2 h-2 rounded-full ${supabaseConnected ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'}`} />
+            <Database className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span className="hidden xl:inline text-[11px]">
-              {isSupabaseConfigured ? (supabaseConnected ? 'Supabase' : 'Supabase') : 'Database'}
+              {supabaseConnected ? 'Supabase Connected' : 'Supabase Active'}
             </span>
-          </button>
+          </div>
 
           {/* Theme Toggle Button */}
           <button
@@ -389,16 +386,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
                     <span>Account Details</span>
                   </button>
 
-                  <button
-                    onClick={() => {
-                      setShowUserDropdown(false);
-                      setShowSupabaseModal(true);
-                    }}
-                    className="w-full px-3 py-2 flex items-center gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  >
-                    <Database className="w-4 h-4 text-emerald-500" />
-                    <span>Database Status</span>
-                  </button>
+
                 </div>
 
                 <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
@@ -577,17 +565,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
                 <span>Sign Out</span>
               </button>
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowProfileModal(false);
-                    setShowSupabaseModal(true);
-                  }}
-                  className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1.5"
-                >
-                  <Database className="w-3.5 h-3.5" />
-                  <span>DB Sync</span>
-                </button>
+
                 <button
                   id="close-profile-modal-btn"
                   onClick={() => setShowProfileModal(false)}
@@ -601,11 +579,6 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
         </div>
       )}
 
-      {/* Supabase Database Modal */}
-      <SupabaseModal
-        isOpen={showSupabaseModal}
-        onClose={() => setShowSupabaseModal(false)}
-      />
     </header>
   );
 };

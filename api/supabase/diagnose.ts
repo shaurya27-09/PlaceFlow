@@ -13,8 +13,9 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const rawUrl = (req.body?.url || supabaseUrl || '').trim();
-    const rawKey = (req.body?.anonKey || supabaseAnonKey || '').trim();
+    // Only diagnose the server-configured Supabase environment
+    const rawUrl = (supabaseUrl || '').trim();
+    const rawKey = (supabaseAnonKey || '').trim();
 
     if (!rawUrl || !rawKey) {
       return res.status(200).json({

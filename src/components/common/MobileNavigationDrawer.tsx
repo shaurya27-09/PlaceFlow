@@ -27,7 +27,6 @@ import {
   CheckCircle2,
   RefreshCw
 } from 'lucide-react';
-import { SupabaseModal } from '../database/SupabaseModal';
 
 interface MobileNavigationDrawerProps {
   isOpen: boolean;
@@ -61,8 +60,6 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
     pullFromSupabase,
     isSyncing
   } = useApp();
-
-  const [showDbModal, setShowDbModal] = React.useState(false);
 
   if (!isOpen) return null;
 
@@ -139,13 +136,6 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
       label: 'Recruiter Portal View',
       icon: Building2,
       badge: null
-    },
-    {
-      id: 'database-settings',
-      label: 'Database & Supabase Settings',
-      icon: Database,
-      badge: isSupabaseConfigured ? 'Live' : 'Config',
-      badgeColor: isSupabaseConfigured ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
     }
   ];
 
@@ -329,22 +319,20 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
                 <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
               </button>
 
-              {/* Database Status Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  setShowDbModal(true);
-                }}
-                className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[44px] ${
-                  isSupabaseConfigured
+              {/* Database Status Indicator */}
+              <div
+                className={`py-2 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 min-h-[44px] select-none ${
+                  isSupabaseConfigured && supabaseConnected
                     ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                    : isSupabaseConfigured
+                      ? 'border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                      : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                 }`}
-                title="Database Settings"
+                title={supabaseConnected ? 'Supabase Connected' : 'Supabase Active'}
               >
-                <Database className="w-4 h-4" />
-                <span>DB</span>
-              </button>
+                <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>{supabaseConnected ? 'Connected' : 'Active'}</span>
+              </div>
             </div>
 
             {/* Logout Button */}
@@ -359,8 +347,6 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
           </div>
         </div>
       </div>
-
-      <SupabaseModal isOpen={showDbModal} onClose={() => setShowDbModal(false)} />
     </>
   );
 };
