@@ -25,8 +25,10 @@ import {
   Shield,
   User,
   CheckCircle2,
-  RefreshCw
+  RefreshCw,
+  Download
 } from 'lucide-react';
+import { PWAInstallButton } from '../pwa/PWAInstallButton';
 
 interface MobileNavigationDrawerProps {
   isOpen: boolean;
@@ -308,6 +310,9 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
 
           {/* Bottom Footer Actions */}
           <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/80 space-y-2">
+            {/* PWA Install Button */}
+            <PWAInstallButton variant="drawer" />
+
             <div className="flex items-center justify-between gap-2">
               {/* Theme Toggle */}
               <button

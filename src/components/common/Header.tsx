@@ -22,8 +22,10 @@ import {
   CheckCircle2,
   Server,
   ShieldCheck,
-  LogOut
+  LogOut,
+  Download
 } from 'lucide-react';
+import { PWAInstallButton } from '../pwa/PWAInstallButton';
 
 interface HeaderProps {
   onOpenCreateDrive?: () => void;
@@ -326,6 +328,9 @@ export const Header: React.FC<HeaderProps> = ({ onOpenCreateDrive, onOpenMobileD
               {supabaseConnected ? 'Supabase Connected' : 'Supabase Active'}
             </span>
           </div>
+
+          {/* PWA Mobile & Desktop Install Button */}
+          <PWAInstallButton variant="header" />
 
           {/* Theme Toggle Button */}
           <button

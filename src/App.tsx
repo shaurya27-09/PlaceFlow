@@ -21,6 +21,7 @@ import { AiAssistantPage } from './components/ai/AiAssistantPage';
 import { StudentPortal } from './components/student/StudentPortal';
 import { RecruiterPortal } from './components/recruiter/RecruiterPortal';
 import { SupabaseSettingsPage } from './components/settings/SupabaseSettingsPage';
+import { PWAInstallBanner } from './components/pwa/PWAInstallBanner';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -86,6 +87,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 selection:bg-blue-500 selection:text-white transition-colors duration-200">
         <LandingPage />
+        <PWAInstallBanner />
         <ToastContainer />
       </div>
     );
@@ -95,6 +97,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 selection:bg-blue-500 selection:text-white transition-colors duration-200">
         <LoginPage />
+        <PWAInstallBanner />
         <ToastContainer />
       </div>
     );
@@ -148,6 +151,9 @@ const AppContent: React.FC = () => {
       <MobileBottomNav
         onOpenMenu={() => setIsMobileDrawerOpen(true)}
       />
+
+      {/* PWA Install Floating Banner */}
+      <PWAInstallBanner />
 
       <ToastContainer />
     </div>
