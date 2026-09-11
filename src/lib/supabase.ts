@@ -430,7 +430,8 @@ export async function fetchAllFromSupabase(): Promise<{
   offerPolicy?: OfferPolicyConfig;
   error?: string;
 }> {
-  if (!isSupabaseConfigured || !supabase) {
+  const client = getSupabaseClient() || supabase;
+  if (!isSupabaseConfigured || !client) {
     return { error: 'Supabase is not configured' };
   }
 
@@ -442,27 +443,58 @@ export async function fetchAllFromSupabase(): Promise<{
       applicationsRes,
       offersRes
     ] = await Promise.allSettled([
-      supabase.from('students').select('*'),
-      supabase.from('companies').select('*'),
-      supabase.from('placement_drives').select('*'),
-      supabase.from('applications').select('*'),
-      supabase.from('offers').select('*')
+      client.from('students').select('*'),
+      client.from('companies').select('*'),
+      client.from('placement_drives').select('*'),
+      client.from('applications').select('*'),
+      client.from('offers').select('*')
     ]);
 
-    if (studentsRes.status === 'rejected') console.warn('Supabase query notice for students table:', studentsRes.reason);
-    else if (studentsRes.value.error) console.warn('Supabase query notice for students table:', studentsRes.value.error);
+    const errorDetails: string[] = [];
+    if (studentsRes.status === 'rejected') {
+      const err = studentsRes.reason?.message || String(studentsRes.reason);
+      console.warn('Supabase query notice for students table:', err);
+      errorDetails.push(`Students: ${err}`);
+    } else if (studentsRes.value.error) {
+      console.warn('Supabase query notice for students table:', studentsRes.value.error);
+      errorDetails.push(`Students: ${studentsRes.value.error.message}`);
+    }
 
-    if (companiesRes.status === 'rejected') console.warn('Supabase query notice for companies table:', companiesRes.reason);
-    else if (companiesRes.value.error) console.warn('Supabase query notice for companies table:', companiesRes.value.error);
+    if (companiesRes.status === 'rejected') {
+      const err = companiesRes.reason?.message || String(companiesRes.reason);
+      console.warn('Supabase query notice for companies table:', err);
+      errorDetails.push(`Companies: ${err}`);
+    } else if (companiesRes.value.error) {
+      console.warn('Supabase query notice for companies table:', companiesRes.value.error);
+      errorDetails.push(`Companies: ${companiesRes.value.error.message}`);
+    }
 
-    if (drivesRes.status === 'rejected') console.warn('Supabase query notice for placement_drives table:', drivesRes.reason);
-    else if (drivesRes.value.error) console.warn('Supabase query notice for placement_drives table:', drivesRes.value.error);
+    if (drivesRes.status === 'rejected') {
+      const err = drivesRes.reason?.message || String(drivesRes.reason);
+      console.warn('Supabase query notice for placement_drives table:', err);
+      errorDetails.push(`Placement drives: ${err}`);
+    } else if (drivesRes.value.error) {
+      console.warn('Supabase query notice for placement_drives table:', drivesRes.value.error);
+      errorDetails.push(`Placement drives: ${drivesRes.value.error.message}`);
+    }
 
-    if (applicationsRes.status === 'rejected') console.warn('Supabase query notice for applications table:', applicationsRes.reason);
-    else if (applicationsRes.value.error) console.warn('Supabase query notice for applications table:', applicationsRes.value.error);
+    if (applicationsRes.status === 'rejected') {
+      const err = applicationsRes.reason?.message || String(applicationsRes.reason);
+      console.warn('Supabase query notice for applications table:', err);
+      errorDetails.push(`Applications: ${err}`);
+    } else if (applicationsRes.value.error) {
+      console.warn('Supabase query notice for applications table:', applicationsRes.value.error);
+      errorDetails.push(`Applications: ${applicationsRes.value.error.message}`);
+    }
 
-    if (offersRes.status === 'rejected') console.warn('Supabase query notice for offers table:', offersRes.reason);
-    else if (offersRes.value.error) console.warn('Supabase query notice for offers table:', offersRes.value.error);
+    if (offersRes.status === 'rejected') {
+      const err = offersRes.reason?.message || String(offersRes.reason);
+      console.warn('Supabase query notice for offers table:', err);
+      errorDetails.push(`Offers: ${err}`);
+    } else if (offersRes.value.error) {
+      console.warn('Supabase query notice for offers table:', offersRes.value.error);
+      errorDetails.push(`Offers: ${offersRes.value.error.message}`);
+    }
 
     const result: {
       students?: Student[];
@@ -471,7 +503,12 @@ export async function fetchAllFromSupabase(): Promise<{
       applications?: Application[];
       offers?: Offer[];
       offerPolicy?: OfferPolicyConfig;
+      error?: string;
     } = {};
+
+    if (errorDetails.length > 0) {
+      result.error = errorDetails.join('; ');
+    }
 
     // 1. Map Companies (Authoritative Schema: id, company_name, industry, website, created_at, contact_name, contact_email, contact_phone, status, contact_person)
     if (companiesRes.status === 'fulfilled' && companiesRes.value.data) {

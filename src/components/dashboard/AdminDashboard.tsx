@@ -17,7 +17,8 @@ import {
   RefreshCw,
   Database,
   ArrowUpRight,
-  Percent
+  Percent,
+  AlertCircle
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -51,11 +52,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
     pullFromSupabase,
     supabaseConnected,
     isSyncing,
+    isLoadingData,
+    isLoadingAuth,
+    dataLoaded,
+    initialDataError,
+    loadDashboardData,
     darkMode
   } = useApp();
 
   const [isLoadingLive, setIsLoadingLive] = useState<boolean>(false);
   const [lastRefreshed, setLastRefreshed] = useState<string>(new Date().toLocaleTimeString());
+
+  const isDashboardLoading = isLoadingData || isLoadingAuth || isSyncing || isLoadingLive;
+
+  // Ensure initial data load is triggered if needed
+  useEffect(() => {
+    if (isSupabaseConfigured && !dataLoaded && !isLoadingData && !isLoadingAuth) {
+      loadDashboardData().catch(() => {});
+    }
+  }, [isSupabaseConfigured, dataLoaded, isLoadingData, isLoadingAuth, loadDashboardData]);
 
   const safeStudents = students || [];
   const safeCompanies = companies || [];
@@ -105,7 +120,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
     setIsLoadingLive(true);
     try {
       if (isSupabaseConfigured) {
-        await pullFromSupabase();
+        await loadDashboardData(true);
       }
       setLastRefreshed(new Date().toLocaleTimeString());
     } catch (err) {
@@ -260,6 +275,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         </div>
       </div>
 
+      {initialDataError && (
+        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span>Notice while fetching Supabase records: {initialDataError}</span>
+          </div>
+          <button
+            onClick={handleRefreshLive}
+            className="px-2.5 py-1 rounded-lg bg-amber-200/60 dark:bg-amber-900/60 font-semibold hover:bg-amber-200 text-amber-900 dark:text-amber-200 transition-colors text-[11px]"
+          >
+            Retry Fetch
+          </button>
+        </div>
+      )}
+
       {/* DASHBOARD CARDS: 8 dynamic live cards organized into responsive grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* Card 1: Total Students */}
@@ -277,7 +307,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-              {totalStudents}
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                totalStudents
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="text-slate-500 dark:text-slate-400">Registered across 6 branches</span>
@@ -304,7 +341,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-              {totalCompanies}
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-cyan-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                totalCompanies
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="text-cyan-600 dark:text-cyan-400 font-bold">
@@ -334,7 +378,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-              {activeDrivesCount}
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                activeDrivesCount
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="text-amber-600 dark:text-amber-400 font-bold">
@@ -369,7 +420,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-              {totalOffers}
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-violet-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                totalOffers
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="text-violet-600 dark:text-violet-400 font-bold">
@@ -404,7 +462,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-              {studentsPlaced}
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                studentsPlaced
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
@@ -436,7 +501,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
-              {placementRate}%
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                `${placementRate}%`
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
@@ -466,7 +538,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-              ₹{averagePackage} <span className="text-base font-semibold text-slate-500">LPA</span>
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                <>₹{averagePackage} <span className="text-base font-semibold text-slate-500">LPA</span></>
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="text-blue-600 dark:text-blue-400 font-bold">
@@ -496,7 +575,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
           <div className="mt-3">
             <div className="text-3xl font-black text-purple-600 dark:text-purple-400 tracking-tighter">
-              ₹{highestPackage} <span className="text-base font-semibold text-slate-500">LPA</span>
+              {isDashboardLoading ? (
+                <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
+                  <RefreshCw className="w-4 h-4 animate-spin text-purple-500" />
+                  <span>Loading...</span>
+                </span>
+              ) : (
+                <>₹{highestPackage} <span className="text-base font-semibold text-slate-500">LPA</span></>
+              )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
               <span className="px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-[10px]">
@@ -695,7 +781,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
 
-        {recentDrives.length === 0 ? (
+        {isDashboardLoading && recentDrives.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-400 text-xs gap-2">
+            <RefreshCw className="w-5 h-5 animate-spin text-blue-500" />
+            <span>Loading live placement drives from Supabase...</span>
+          </div>
+        ) : recentDrives.length === 0 ? (
           <div className="text-center py-12 text-slate-400 text-xs">
             No placement drives found. Click "New Drive" to create one.
           </div>

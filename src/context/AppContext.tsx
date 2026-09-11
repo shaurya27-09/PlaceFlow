@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { generateUUID, isValidUUID } from '../lib/uuid';
 import {
   Student,
@@ -115,6 +115,10 @@ interface AppContextType {
   isSupabaseConfigured: boolean;
   supabaseConnected: boolean;
   isSyncing: boolean;
+  isLoadingData: boolean;
+  dataLoaded: boolean;
+  initialDataError: string | null;
+  loadDashboardData: (force?: boolean) => Promise<void>;
   testConnection: () => Promise<{ success: boolean; message: string }>;
   syncAllToSupabase: () => Promise<void>;
   pullFromSupabase: () => Promise<void>;
@@ -276,6 +280,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Supabase Database States
   const [supabaseConnected, setSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(isSupabaseConfigured);
+  const [dataLoaded, setDataLoaded] = useState<boolean>(false);
+  const [initialDataError, setInitialDataError] = useState<string | null>(null);
+  const isLoadingDataRef = useRef(false);
+  const dataFetchPromiseRef = useRef<Promise<void> | null>(null);
 
   // Derive active student strictly from activeStudentId
   const activeStudent = activeStudentId
@@ -424,6 +433,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
               setSelectedCompanyId(null);
               setCurrentView('dashboard');
             }
+            loadDashboardData(true).catch(() => {});
           }
         } else if (event === 'SIGNED_OUT') {
           setCurrentUser(null);
@@ -431,6 +441,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           setActiveStudentId(null);
           setSelectedCompanyId(null);
           setCurrentView('login');
+          setDataLoaded(false);
         }
       });
       subscription = data.subscription;
@@ -497,6 +508,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setCurrentView('recruiter-portal');
         addToast('Welcome Corporate Partner', `Logged in as ${profile.email}`, 'success');
       }
+
+      // Immediately fetch authoritative data with authenticated session
+      loadDashboardData(true).catch(() => {});
 
       return { success: true };
     } catch (err: any) {
@@ -585,40 +599,92 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true };
   };
 
-  // Check Supabase connection on boot & optionally fetch remote data
+  // Authoritative data loading function
+  const loadDashboardData = useCallback(async (force = false): Promise<void> => {
+    if (!isSupabaseConfigured) {
+      setIsLoadingData(false);
+      return;
+    }
+
+    if (isLoadingDataRef.current && !force && dataFetchPromiseRef.current) {
+      return dataFetchPromiseRef.current;
+    }
+
+    isLoadingDataRef.current = true;
+    setIsLoadingData(true);
+    setInitialDataError(null);
+
+    const promise = (async () => {
+      try {
+        const data = await fetchAllFromSupabase();
+        if (data.error) {
+          console.warn('Notice loading Supabase records:', data.error);
+          setInitialDataError(data.error);
+        }
+        if (data.students !== undefined) {
+          setStudents(data.students);
+        }
+        if (data.companies !== undefined) {
+          setCompanies(data.companies);
+        }
+        if (data.drives !== undefined) {
+          setDrives(data.drives);
+        }
+        if (data.applications !== undefined) {
+          setApplications(data.applications);
+        }
+        if (data.offers !== undefined) {
+          setOffers(data.offers);
+        }
+        if (data.offerPolicy) {
+          setOfferPolicy(data.offerPolicy);
+        }
+      } catch (err: any) {
+        console.error('Failed to load initial Supabase records:', err);
+        setInitialDataError(err?.message || 'Failed to load records from Supabase');
+      } finally {
+        isLoadingDataRef.current = false;
+        setIsLoadingData(false);
+        setDataLoaded(true);
+        dataFetchPromiseRef.current = null;
+      }
+    })();
+
+    dataFetchPromiseRef.current = promise;
+    return promise;
+  }, [isSupabaseConfigured]);
+
+  // Check Supabase connection on boot & fetch data AFTER auth session is resolved
   useEffect(() => {
+    // Critical: Do NOT query database before authentication/session is resolved
+    if (isLoadingAuth) return;
+
+    let isMounted = true;
+
     if (isSupabaseConfigured) {
       testSupabaseConnection().then(res => {
+        if (!isMounted) return;
         setSupabaseConnected(res.success);
         if (res.success) {
-          // Attempt automatic pull from Supabase
-          fetchAllFromSupabase().then(data => {
-            if (data.students !== undefined) {
-              setStudents(data.students);
-            }
-            if (data.companies !== undefined) {
-              setCompanies(data.companies);
-            }
-            if (data.drives !== undefined) {
-              setDrives(data.drives);
-            }
-            if (data.applications !== undefined) {
-              setApplications(data.applications);
-            }
-            if (data.offers !== undefined) {
-              setOffers(data.offers);
-            }
-            if (data.offerPolicy) {
-              setOfferPolicy(data.offerPolicy);
-            }
-            addToast('Supabase Connected', 'Synchronized live records from Supabase database.', 'success');
-          }).catch(err => {
-            console.error('Supabase auto-sync failed:', err);
+          loadDashboardData().catch(err => {
+            console.error('Supabase initial fetch notice:', err);
           });
+        } else {
+          setIsLoadingData(false);
         }
+      }).catch(err => {
+        if (!isMounted) return;
+        console.error('Supabase connection check error:', err);
+        setIsLoadingData(false);
       });
+    } else {
+      setIsLoadingData(false);
     }
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isLoadingAuth, currentUser?.id, isSupabaseConfigured, loadDashboardData]);
 
   const testConnection = async () => {
     const res = await testSupabaseConnection();
@@ -648,19 +714,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return;
     }
     setIsSyncing(true);
-    const data = await fetchAllFromSupabase();
-    setIsSyncing(false);
-    if (data.error) {
-      addToast('Fetch Error', data.error, 'error');
-      return;
+    try {
+      await loadDashboardData(true);
+      addToast('Data Pulled', 'Refreshed local records from Supabase database.', 'success');
+    } catch (err: any) {
+      addToast('Fetch Error', err?.message || 'Failed to pull from Supabase', 'error');
+    } finally {
+      setIsSyncing(false);
     }
-    if (data.students !== undefined) setStudents(data.students);
-    if (data.companies !== undefined) setCompanies(data.companies);
-    if (data.drives !== undefined) setDrives(data.drives);
-    if (data.applications !== undefined) setApplications(data.applications);
-    if (data.offers !== undefined) setOffers(data.offers);
-    if (data.offerPolicy) setOfferPolicy(data.offerPolicy);
-    addToast('Data Pulled', 'Refreshed local records from Supabase database.', 'success');
   };
 
   // Sync theme
@@ -1546,6 +1607,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         isSupabaseConfigured,
         supabaseConnected,
         isSyncing,
+        isLoadingData,
+        dataLoaded,
+        initialDataError,
+        loadDashboardData,
         testConnection,
         syncAllToSupabase,
         pullFromSupabase,
