@@ -282,12 +282,12 @@ export const AnalyticsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
           <button
             id="analytics-refresh-btn"
             onClick={handleRefreshLive}
             disabled={isLoadingLive || isSyncing}
-            className="px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+            className="min-h-[40px] px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50 touch-manipulation cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingLive || isSyncing ? 'animate-spin text-blue-600' : ''}`} />
             <span>{isLoadingLive || isSyncing ? 'Syncing...' : 'Refresh Data'}</span>
@@ -296,7 +296,7 @@ export const AnalyticsPage: React.FC = () => {
           <button
             id="analytics-export-btn"
             onClick={handleExportAnalytics}
-            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5"
+            className="min-h-[40px] px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 touch-manipulation cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Export Report</span>
@@ -305,16 +305,16 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* KPI Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Placement Rate */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Placement Rate</span>
             <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">
+          <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
             {placementRate}%
           </div>
           <div className="mt-1 flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
@@ -324,14 +324,14 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Average CTC */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Average CTC</span>
             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400">
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">
+          <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
             ₹{averagePackage} LPA
           </div>
           <div className="mt-1 flex items-center gap-1 text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
@@ -340,14 +340,14 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Highest CTC */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Highest CTC Secured</span>
             <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-extrabold text-purple-600 dark:text-purple-400">
+          <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-purple-600 dark:text-purple-400">
             ₹{highestPackage} LPA
           </div>
           <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
@@ -356,14 +356,14 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Total Offers */}
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-semibold">Total Offers Released</span>
             <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
               <Briefcase className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl font-extrabold text-slate-900 dark:text-white">
+          <div className="mt-2 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
             {totalOffersCount}
           </div>
           <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 font-semibold">
@@ -373,9 +373,9 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Row 1: Charts 1 & 2 */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* 1. Branch-wise Placement */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">1. Branch-wise Placement</h3>
@@ -385,7 +385,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-64">
+          <div className="h-56 sm:h-64 w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={branchPlacementData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
@@ -407,7 +407,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* 2. Package Distribution */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">2. Package Distribution</h3>
@@ -417,7 +417,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-64">
+          <div className="h-56 sm:h-64 w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={packageDistributionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
@@ -439,9 +439,9 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Row 2: Charts 3 & 4 */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* 3. Company-wise Hiring */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">3. Company-wise Hiring</h3>
@@ -451,7 +451,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-64">
+          <div className="h-56 sm:h-64 w-full min-w-0">
             {companyHiringData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-slate-400 text-xs">
                 No accepted company offers recorded yet.
@@ -461,11 +461,11 @@ export const AnalyticsPage: React.FC = () => {
                 <BarChart
                   data={companyHiringData}
                   layout="vertical"
-                  margin={{ top: 10, right: 20, left: 40, bottom: 0 }}
+                  margin={{ top: 10, right: 20, left: 20, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#334155" opacity={0.15} />
                   <XAxis type="number" stroke="#94A3B8" fontSize={11} tickLine={false} />
-                  <YAxis type="category" dataKey="company" stroke="#94A3B8" fontSize={11} tickLine={false} />
+                  <YAxis type="category" dataKey="company" stroke="#94A3B8" fontSize={11} tickLine={false} width={80} />
                   <Tooltip
                     contentStyle={tooltipStyle}
                     formatter={(val: number) => [`${val} Hires`, 'Accepted Offers']}
@@ -478,7 +478,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* 4. Placement Status */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
@@ -489,7 +489,7 @@ export const AnalyticsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="h-48 my-2">
+            <div className="h-48 my-2 w-full min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -519,19 +519,19 @@ export const AnalyticsPage: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/30">
-              <UserCheck className="w-4 h-4 text-emerald-600" />
+              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
               <div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Placed</div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                   {placedStudents} ({placementRate}%)
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-2 p-2 rounded-xl bg-rose-50/50 dark:bg-rose-950/30">
-              <UserX className="w-4 h-4 text-rose-600" />
+              <UserX className="w-4 h-4 text-rose-600 shrink-0" />
               <div>
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Unplaced</div>
-                <div className="text-sm font-bold text-slate-900 dark:text-white">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white">
                   {unplacedStudents} ({totalStudents > 0 ? (100 - placementRate).toFixed(1) : 0}%)
                 </div>
               </div>
@@ -541,10 +541,10 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Row 3: Charts 5 & 6 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* 5. Application Funnel */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs min-w-0">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
               <h3 className="font-bold text-sm text-slate-900 dark:text-white">5. Application Funnel</h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -556,7 +556,7 @@ export const AnalyticsPage: React.FC = () => {
             </span>
           </div>
 
-          <div className="h-64">
+          <div className="h-56 sm:h-64 w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={applicationFunnelData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.15} />
@@ -577,9 +577,9 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* 6. Drive Statistics */}
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-white">6. Drive Statistics</h3>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -591,7 +591,7 @@ export const AnalyticsPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="h-48 my-2">
+            <div className="h-48 my-2 w-full min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie

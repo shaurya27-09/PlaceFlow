@@ -208,12 +208,12 @@ export const StudentsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <button
             id="refresh-students-supabase-btn"
             onClick={() => fetchSupabaseStudents(true)}
             disabled={isLoading}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 disabled:opacity-50 min-h-[40px] touch-manipulation"
             title="Fetch live records from Supabase students table"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : 'text-emerald-500'}`} />
@@ -223,16 +223,16 @@ export const StudentsPage: React.FC = () => {
           <button
             id="export-students-csv-btn"
             onClick={handleExportRoster}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-colors flex items-center gap-1.5 min-h-[40px] touch-manipulation"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export Roster</span>
+            <span>Export</span>
           </button>
 
           <button
             id="open-add-student-modal-btn"
             onClick={() => setIsAddModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5 min-h-[40px] touch-manipulation"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Add Student</span>
@@ -266,7 +266,7 @@ export const StudentsPage: React.FC = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search by student name, enrollment number, branch, or skills (e.g., Python, C++, React)..."
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-4 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
@@ -281,7 +281,7 @@ export const StudentsPage: React.FC = () => {
               id="filter-student-branch"
               value={selectedBranch}
               onChange={e => setSelectedBranch(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+              className="w-full px-2.5 py-2 text-base sm:text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
             >
               <option value="ALL">All Branches</option>
               <option value="CSE">CSE</option>
@@ -302,7 +302,7 @@ export const StudentsPage: React.FC = () => {
               id="filter-student-cgpa"
               value={selectedCgpaFilter}
               onChange={e => setSelectedCgpaFilter(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+              className="w-full px-2.5 py-2 text-base sm:text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
             >
               <option value="ALL">All CGPA</option>
               <option value="9_PLUS">&gt;= 9.0 (Outstanding)</option>
@@ -321,7 +321,7 @@ export const StudentsPage: React.FC = () => {
               id="filter-student-status"
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+              className="w-full px-2.5 py-2 text-base sm:text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
             >
               <option value="ALL">All Statuses</option>
               <option value="Unplaced">Unplaced</option>
@@ -341,7 +341,7 @@ export const StudentsPage: React.FC = () => {
               id="filter-student-backlogs"
               value={selectedBacklogFilter}
               onChange={e => setSelectedBacklogFilter(e.target.value)}
-              className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+              className="w-full px-2.5 py-2 text-base sm:text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
             >
               <option value="ALL">All Records</option>
               <option value="ZERO">0 Active Backlogs (Clean)</option>
@@ -351,8 +351,147 @@ export const StudentsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Student Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+      {/* Mobile Card-Based View (< md screens) */}
+      <div className="block md:hidden space-y-3">
+        {(filteredStudents || []).length > 0 ? (
+          (filteredStudents || []).map(student => {
+            const acceptedOffer = (student.offers || []).find(o => o.status === 'Accepted');
+            const pendingOffer = (student.offers || []).find(o => o.status === 'Pending');
+
+            return (
+              <div
+                key={`mobile-student-${student.id}`}
+                onClick={() => setSelectedStudentForDetail(student)}
+                className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs hover:border-blue-400 dark:hover:border-blue-500 transition-all cursor-pointer space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                      {student?.name?.charAt(0) || 'S'}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        {student?.name || 'Unknown Student'}
+                      </h4>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
+                          {student?.enrollmentNumber || '—'}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          {student?.branch || '—'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                    student.placementStatus === 'Dream Placed'
+                      ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
+                      : student.placementStatus === 'Placed'
+                      ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                      : student.placementStatus === 'Higher Studies'
+                      ? 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  }`}>
+                    {student.placementStatus}
+                  </span>
+                </div>
+
+                {/* Stat badges */}
+                <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] text-slate-400 block font-semibold">CGPA</span>
+                    <span className={`font-extrabold ${(student.cgpa ?? 0) >= 8.5 ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white'}`}>
+                      {(student.cgpa ?? 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] text-slate-400 block font-semibold">Backlogs</span>
+                    <span className={`font-extrabold ${student.backlogs === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                      {student.backlogs}
+                    </span>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                    <span className="text-[10px] text-slate-400 block font-semibold">Attendance</span>
+                    <span className={`font-extrabold ${student.attendance >= 75 ? 'text-slate-900 dark:text-white' : 'text-amber-600 dark:text-amber-400'}`}>
+                      {student.attendance}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Offer Status if applicable */}
+                {acceptedOffer && (
+                  <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs flex items-center justify-between">
+                    <span className="font-semibold text-emerald-800 dark:text-emerald-300">Placed: {acceptedOffer.companyName}</span>
+                    <span className="font-extrabold text-emerald-600 dark:text-emerald-400">₹{acceptedOffer.packageLPA} LPA</span>
+                  </div>
+                )}
+                {pendingOffer && (
+                  <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs flex items-center justify-between" onClick={e => e.stopPropagation()}>
+                    <span className="font-semibold text-amber-800 dark:text-amber-300">Offer: {pendingOffer.companyName} (₹{pendingOffer.packageLPA}L)</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => acceptOffer(pendingOffer.offerId)}
+                        className="px-2 py-1 rounded bg-emerald-600 text-white text-xs font-bold min-h-[36px] touch-manipulation"
+                      >
+                        Accept
+                      </button>
+                      <button
+                        onClick={() => declineOffer(pendingOffer.offerId)}
+                        className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs min-h-[36px] touch-manipulation"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-2">
+                    <button
+                      id={`mobile-edit-student-${student.id}`}
+                      onClick={() => setStudentToEdit(student)}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-semibold flex items-center gap-1.5 min-h-[44px] touch-manipulation"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      id={`mobile-delete-student-${student.id}`}
+                      onClick={() => {
+                        if (confirm(`Delete student ${student.name} (${student.enrollmentNumber}) from Supabase?`)) {
+                          deleteStudent(student.id);
+                        }
+                      }}
+                      className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950/60 text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 text-xs font-semibold flex items-center gap-1.5 min-h-[44px] touch-manipulation"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+
+                  <button
+                    id={`mobile-view-student-${student.id}`}
+                    onClick={() => setSelectedStudentForDetail(student)}
+                    className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60 font-bold text-xs flex items-center gap-1 min-h-[44px] touch-manipulation"
+                  >
+                    <span>View Profile</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-6 text-center text-slate-400 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+            No students match the selected filter criteria.
+          </div>
+        )}
+      </div>
+
+      {/* Main Student Table (hidden on mobile, visible on >= md screens) */}
+      <div className="hidden md:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
         <div className="w-full max-w-full overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse min-w-[680px]">
             <thead>

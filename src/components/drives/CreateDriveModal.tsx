@@ -196,8 +196,8 @@ export const CreateDriveModal: React.FC<CreateDriveModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-2xl w-full flex flex-col max-h-[82vh] my-auto animate-in zoom-in-95 overflow-hidden">
+    <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-2xl w-full flex flex-col max-h-[92vh] sm:max-h-[85vh] my-auto animate-in zoom-in-95 overflow-hidden">
         {/* Fixed Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
           <div className="flex items-center gap-2.5">
@@ -211,7 +211,8 @@ export const CreateDriveModal: React.FC<CreateDriveModalProps> = ({ isOpen, onCl
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center touch-manipulation"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -506,12 +507,12 @@ export const CreateDriveModal: React.FC<CreateDriveModalProps> = ({ isOpen, onCl
           </div>
 
           {/* Fixed Footer */}
-          <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2 shrink-0 bg-slate-50/75 dark:bg-slate-900/75 backdrop-blur-xs">
+          <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5 sm:gap-2 shrink-0 bg-slate-50/75 dark:bg-slate-900/75 backdrop-blur-xs">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 min-h-[44px] flex items-center justify-center touch-manipulation"
             >
               Cancel
             </button>
@@ -519,7 +520,7 @@ export const CreateDriveModal: React.FC<CreateDriveModalProps> = ({ isOpen, onCl
               type="submit"
               disabled={isSubmitting}
               id="publish-placement-drive-btn"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/25 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-md shadow-blue-500/25 flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 min-h-[44px] touch-manipulation"
             >
               {isSubmitting ? (
                 <>

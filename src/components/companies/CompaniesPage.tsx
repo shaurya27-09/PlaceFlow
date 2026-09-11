@@ -177,12 +177,12 @@ export const CompaniesPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {/* Refresh button */}
           <button
             onClick={() => fetchSupabaseCompanies()}
             disabled={isLoading}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors disabled:opacity-50 min-h-[40px] min-w-[40px] flex items-center justify-center touch-manipulation"
             title="Refresh Partners"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
@@ -192,7 +192,7 @@ export const CompaniesPage: React.FC = () => {
           <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800 p-1 border border-slate-200 dark:border-slate-700">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`p-2 rounded-lg text-xs font-semibold transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center touch-manipulation ${
                 viewMode === 'grid'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
@@ -203,7 +203,7 @@ export const CompaniesPage: React.FC = () => {
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`p-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`p-2 rounded-lg text-xs font-semibold transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center touch-manipulation ${
                 viewMode === 'table'
                   ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                   : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
@@ -217,7 +217,7 @@ export const CompaniesPage: React.FC = () => {
           <button
             id="open-add-company-btn"
             onClick={() => setIsAddModalOpen(true)}
-            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 transition-all flex items-center gap-1.5 min-h-[40px] touch-manipulation"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Company</span>
@@ -237,7 +237,7 @@ export const CompaniesPage: React.FC = () => {
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search company name, industry, contact, email..."
-                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-9 pr-4 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
@@ -246,7 +246,7 @@ export const CompaniesPage: React.FC = () => {
                 id="company-tier-filter"
                 value={selectedTier}
                 onChange={e => setSelectedTier(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ALL">All Tiers</option>
                 <option value="Super Dream">Super Dream (&gt;= ₹12 LPA)</option>

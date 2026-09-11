@@ -183,12 +183,12 @@ export const DrivesPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           {/* Refresh button */}
           <button
             onClick={() => fetchSupabaseDrives()}
             disabled={isLoading}
-            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center touch-manipulation"
             title="Refresh from Supabase"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
@@ -198,7 +198,7 @@ export const DrivesPage: React.FC = () => {
             <button
               id="open-create-drive-modal-btn"
               onClick={() => setIsCreateModalOpen(true)}
-              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 shrink-0"
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 shrink-0 min-h-[40px] touch-manipulation"
             >
               <Plus className="w-4 h-4" />
               <span>Create New Drive</span>
@@ -229,7 +229,7 @@ export const DrivesPage: React.FC = () => {
         <div className="flex rounded-xl bg-slate-100 dark:bg-slate-800/80 p-1 border border-slate-200 dark:border-slate-700 max-w-full overflow-x-auto no-scrollbar">
           <button
             onClick={() => setStatusFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[36px] ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap min-h-[40px] touch-manipulation ${
               statusFilter === 'ALL'
                 ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
@@ -239,7 +239,7 @@ export const DrivesPage: React.FC = () => {
           </button>
           <button
             onClick={() => setStatusFilter('Active')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[36px] ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[40px] touch-manipulation ${
               statusFilter === 'Active'
                 ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
@@ -250,18 +250,18 @@ export const DrivesPage: React.FC = () => {
           </button>
           <button
             onClick={() => setStatusFilter('Upcoming')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[36px] ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[40px] touch-manipulation ${
               statusFilter === 'Upcoming'
-                ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
             }`}
           >
-            <Clock className="w-3.5 h-3.5" />
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
             <span>Upcoming ({upcomingCount})</span>
           </button>
           <button
             onClick={() => setStatusFilter('Completed')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[36px] ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap min-h-[40px] touch-manipulation ${
               statusFilter === 'Completed'
                 ? 'bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400'
@@ -282,7 +282,7 @@ export const DrivesPage: React.FC = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search company, role, location..."
-            className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+            className="w-full pl-9 pr-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
           />
         </div>
       </div>
@@ -339,7 +339,7 @@ export const DrivesPage: React.FC = () => {
                           id={`edit-drive-${drive.id}`}
                           title="Edit Drive"
                           onClick={() => handleEditClick(drive)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors cursor-pointer"
+                          className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/60 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center touch-manipulation"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
@@ -347,7 +347,7 @@ export const DrivesPage: React.FC = () => {
                           id={`delete-drive-${drive.id}`}
                           title="Delete Drive"
                           onClick={() => handleDeleteClick(drive)}
-                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors cursor-pointer"
+                          className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/60 transition-colors cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center touch-manipulation"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -414,7 +414,7 @@ export const DrivesPage: React.FC = () => {
                             type="button"
                             id={`drives-page-applied-btn-${drive.id}`}
                             disabled={true}
-                            className="px-3.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-90"
+                            className="px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold flex items-center gap-1.5 cursor-not-allowed opacity-90 min-h-[40px] touch-manipulation"
                             title="You have already applied for this placement drive"
                           >
                             <CheckCircle2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
@@ -429,7 +429,7 @@ export const DrivesPage: React.FC = () => {
                             type="button"
                             id={`drives-page-not-eligible-btn-${drive.id}`}
                             disabled={true}
-                            className="px-3.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed border border-slate-200 dark:border-slate-700 flex items-center gap-1.5"
+                            className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-bold text-xs cursor-not-allowed border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 min-h-[40px] touch-manipulation"
                             title={ineligibilityReasons.join(', ') || 'You do not satisfy eligibility criteria for this placement drive.'}
                           >
                             <XCircle className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
@@ -444,7 +444,7 @@ export const DrivesPage: React.FC = () => {
                           id={`drives-page-apply-btn-${drive.id}`}
                           disabled={isApplyingDriveId === drive.id}
                           onClick={() => handleApply(drive.id)}
-                          className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+                          className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed min-h-[40px] touch-manipulation"
                         >
                           {isApplyingDriveId === drive.id ? (
                             <>
@@ -467,7 +467,7 @@ export const DrivesPage: React.FC = () => {
                         setSelectedDriveForEligibility(drive);
                         setCurrentView('eligibility-results');
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-3.5 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer min-h-[40px] touch-manipulation"
                     >
                       <span>Check Eligibility</span>
                       <ArrowRight className="w-3 h-3" />

@@ -238,10 +238,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
       {/* Top Banner / Sync Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-200 dark:border-slate-800 gap-3">
         <div className="flex items-center gap-3">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></div>
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0"></div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white tracking-tight">
                 Live Placement Control Center
               </h2>
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
@@ -259,7 +259,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-start sm:self-auto">
           <span className="text-[11px] text-slate-400 dark:text-slate-500 hidden md:inline">
             Updated: {lastRefreshed}
           </span>
@@ -267,7 +267,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             id="admin-dashboard-refresh-btn"
             onClick={handleRefreshLive}
             disabled={isLoadingLive || isSyncing}
-            className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+            className="min-h-[40px] px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50 touch-manipulation cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingLive || isSyncing ? 'animate-spin text-blue-600' : ''}`} />
             <span>{isLoadingLive || isSyncing ? 'Syncing...' : 'Refresh Live'}</span>
@@ -276,14 +276,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
       </div>
 
       {initialDataError && (
-        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
-            <span>Notice while fetching Supabase records: {initialDataError}</span>
+            <span className="truncate">Notice while fetching Supabase records: {initialDataError}</span>
           </div>
           <button
             onClick={handleRefreshLive}
-            className="px-2.5 py-1 rounded-lg bg-amber-200/60 dark:bg-amber-900/60 font-semibold hover:bg-amber-200 text-amber-900 dark:text-amber-200 transition-colors text-[11px]"
+            className="min-h-[36px] px-3 py-1.5 rounded-lg bg-amber-200/60 dark:bg-amber-900/60 font-semibold hover:bg-amber-200 text-amber-900 dark:text-amber-200 transition-colors text-[11px] shrink-0 touch-manipulation"
           >
             Retry Fetch
           </button>
@@ -291,11 +291,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
       )}
 
       {/* DASHBOARD CARDS: 8 dynamic live cards organized into responsive grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total Students */}
         <div
           id="dashboard-card-total-students"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-blue-400 dark:hover:border-blue-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-blue-400 dark:hover:border-blue-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -306,7 +306,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
@@ -329,7 +329,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Card 2: Total Companies */}
         <div
           id="dashboard-card-total-companies"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-cyan-400 dark:hover:border-cyan-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-cyan-400 dark:hover:border-cyan-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -340,7 +340,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-cyan-500" />
@@ -366,7 +366,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Card 3: Active Drives */}
         <div
           id="dashboard-card-active-drives"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-amber-400 dark:hover:border-amber-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-amber-400 dark:hover:border-amber-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -377,7 +377,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-amber-500" />
@@ -398,7 +398,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             <span>{safeDrives.length} Total Registered</span>
             <button
               onClick={() => setCurrentView('drives')}
-              className="font-semibold text-amber-600 dark:text-amber-400 hover:underline"
+              className="font-semibold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
             >
               Manage →
             </button>
@@ -408,7 +408,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Card 4: Total Offers */}
         <div
           id="dashboard-card-total-offers"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-violet-400 dark:hover:border-violet-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-violet-400 dark:hover:border-violet-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -419,7 +419,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-violet-500" />
@@ -440,7 +440,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             <span>{safeOffers.filter(o => o.status === 'Offered' || o.status === 'Pending').length} Pending Acceptance</span>
             <button
               onClick={() => setCurrentView('offers')}
-              className="font-semibold text-violet-600 dark:text-violet-400 hover:underline"
+              className="font-semibold text-violet-600 dark:text-violet-400 hover:underline cursor-pointer"
             >
               View Offers →
             </button>
@@ -450,7 +450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Card 5: Students Placed */}
         <div
           id="dashboard-card-students-placed"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-emerald-400 dark:hover:border-emerald-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-emerald-400 dark:hover:border-emerald-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -461,7 +461,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
@@ -489,7 +489,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Card 6: Placement Rate */}
         <div
           id="dashboard-card-placement-rate"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-emerald-400 dark:hover:border-emerald-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-emerald-400 dark:hover:border-emerald-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -500,7 +500,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-emerald-500" />
@@ -526,7 +526,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Card 7: Average Package */}
         <div
           id="dashboard-card-avg-package"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-blue-400 dark:hover:border-blue-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-blue-400 dark:hover:border-blue-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -537,14 +537,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />
                   <span>Loading...</span>
                 </span>
               ) : (
-                <>₹{averagePackage} <span className="text-base font-semibold text-slate-500">LPA</span></>
+                <>₹{averagePackage} <span className="text-sm font-semibold text-slate-500">LPA</span></>
               )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
@@ -555,7 +555,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-4 pt-2 border-t border-slate-100 dark:border-slate-800/60 text-[11px] text-slate-500 dark:text-slate-400 flex justify-between">
-            <span>Median Package: ₹{medianPackage} LPA</span>
+            <span>Median: ₹{medianPackage} LPA</span>
             <span className="font-semibold text-blue-600 dark:text-blue-400">AVG CTC</span>
           </div>
         </div>
@@ -563,7 +563,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Card 8: Highest Package */}
         <div
           id="dashboard-card-highest-package"
-          className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-purple-400 dark:hover:border-purple-600 transition-all"
+          className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between hover:border-purple-400 dark:hover:border-purple-600 transition-all"
         >
           <div className="flex items-center justify-between">
             <span className="text-slate-500 dark:text-slate-400 text-[11px] font-bold uppercase tracking-wider">
@@ -574,14 +574,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             </div>
           </div>
           <div className="mt-3">
-            <div className="text-3xl font-black text-purple-600 dark:text-purple-400 tracking-tighter">
+            <div className="text-2xl sm:text-3xl font-black text-purple-600 dark:text-purple-400 tracking-tighter">
               {isDashboardLoading ? (
                 <span className="text-xl font-bold text-slate-400 dark:text-slate-500 animate-pulse flex items-center gap-1.5">
                   <RefreshCw className="w-4 h-4 animate-spin text-purple-500" />
                   <span>Loading...</span>
                 </span>
               ) : (
-                <>₹{highestPackage} <span className="text-base font-semibold text-slate-500">LPA</span></>
+                <>₹{highestPackage} <span className="text-sm font-semibold text-slate-500">LPA</span></>
               )}
             </div>
             <div className="flex items-center gap-1.5 mt-1 text-xs">
@@ -740,7 +740,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
           <div className="mt-5 pt-3 border-t border-slate-800">
             <button
               onClick={() => setCurrentView('ai')}
-              className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm shadow-blue-500/30 transition-all group"
+              className="w-full min-h-[44px] flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-sm shadow-blue-500/30 transition-all group touch-manipulation cursor-pointer"
             >
               <Bot className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span>Query Assistant with Natural Language</span>
@@ -754,8 +754,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
         {/* Floating Supabase Console Bar over Placement Drives Area */}
         <SupabaseConsoleBar variant="floating" className="sticky top-16 sm:top-20 z-20 drop-shadow-2xl" />
 
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-2">
+        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-3">
             <div>
               <h3 className="text-base font-bold text-slate-900 dark:text-white tracking-tight">
                 Placement Drives & Eligibility Gating Roster
@@ -764,17 +764,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
                 Click any drive to trigger automated eligibility determination and student verification
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={onOpenCreateDrive}
-                className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-2xs transition-colors flex items-center gap-1.5"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-2xs transition-colors flex items-center gap-1.5 touch-manipulation cursor-pointer"
               >
                 <Briefcase className="w-3.5 h-3.5" />
                 <span>New Drive</span>
               </button>
               <button
                 onClick={() => setCurrentView('drives')}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                className="min-h-[40px] px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors touch-manipulation cursor-pointer"
               >
                 View All ({safeDrives.length})
               </button>
@@ -791,7 +791,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
             No placement drives found. Click "New Drive" to create one.
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 mt-4">
             {recentDrives.map(drive => {
               // Dynamically evaluate eligible students count
               const liveEligibleCount = safeStudents.filter(s => evaluateEligibility(s, drive).isEligible).length;
@@ -803,7 +803,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onOpenCreateDriv
                     setSelectedDriveForEligibility(drive);
                     setCurrentView('eligibility-results');
                   }}
-                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs hover:shadow-md"
+                  className="group p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800 transition-all cursor-pointer shadow-2xs hover:shadow-md touch-manipulation"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">

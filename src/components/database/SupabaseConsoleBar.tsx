@@ -204,14 +204,14 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
             </div>
 
             {/* Right: Quick Actions & Toggle */}
-            <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               {/* Quick Ping Test */}
               <button
                 type="button"
                 id="supabase-console-ping-btn"
                 onClick={handleTestPing}
                 disabled={isTesting}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 text-[11px] font-mono font-semibold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 text-[11px] font-mono font-semibold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer min-h-[38px] touch-manipulation"
                 title="Send test ping to Supabase REST and Auth endpoints"
               >
                 <Activity className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin text-emerald-400' : 'text-emerald-400'}`} />
@@ -224,7 +224,7 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
                 id="supabase-console-sync-btn"
                 onClick={handleSyncNow}
                 disabled={isSyncing}
-                className="px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-mono font-semibold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer"
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-mono font-semibold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50 cursor-pointer min-h-[38px] touch-manipulation"
                 title="Pull and refresh latest data from Supabase tables"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
@@ -236,7 +236,7 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
                 type="button"
                 id="supabase-console-logs-btn"
                 onClick={() => setShowLogs(prev => !prev)}
-                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-mono font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-mono font-semibold transition-all flex items-center gap-1.5 cursor-pointer min-h-[38px] touch-manipulation ${
                   showLogs
                     ? 'bg-blue-600/30 text-blue-300 border-blue-500/40'
                     : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700/80'
@@ -252,7 +252,7 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
                 type="button"
                 id="supabase-console-toggle-expand-btn"
                 onClick={() => setIsExpanded(prev => !prev)}
-                className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/80 transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/80 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center touch-manipulation"
                 title={isExpanded ? 'Collapse Table Stats' : 'Expand Live Table Stats'}
                 aria-label="Toggle Console Summary"
               >
@@ -264,7 +264,7 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
                 type="button"
                 id="supabase-console-minimize-btn"
                 onClick={() => setIsMinimized(true)}
-                className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/80 transition-colors cursor-pointer"
+                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/80 transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center touch-manipulation"
                 title="Minimize console to floating pill"
                 aria-label="Minimize Console"
               >

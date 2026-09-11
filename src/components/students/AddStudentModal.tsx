@@ -72,7 +72,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
 
   return (
     <div className="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full flex flex-col max-h-[82vh] my-auto animate-in zoom-in-95 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-lg w-full flex flex-col max-h-[92vh] my-auto animate-in zoom-in-95 overflow-hidden">
         {/* Fixed Header */}
         <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
           <div className="flex items-center gap-2.5">
@@ -87,7 +87,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
           <button
             id="close-add-student-modal"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-2 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[36px] min-w-[36px] flex items-center justify-center touch-manipulation"
           >
             <X className="w-5 h-5" />
           </button>
@@ -102,172 +102,173 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="add-student-name"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="e.g. Sahil Kapoor"
+                  required
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Enrollment Number *
+                </label>
+                <input
+                  type="text"
+                  id="add-student-enrollment"
+                  value={enrollmentNumber}
+                  onChange={e => setEnrollmentNumber(e.target.value)}
+                  placeholder="e.g. 09916403222"
+                  required
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Branch / Discipline *
+                </label>
+                <select
+                  id="add-student-branch"
+                  value={branch}
+                  onChange={e => setBranch(e.target.value as Branch)}
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                >
+                  <option value="CSE">CSE (Computer Science)</option>
+                  <option value="IT">IT (Information Tech)</option>
+                  <option value="ECE">ECE (Electronics & Comm)</option>
+                  <option value="EE">EE (Electrical Engg)</option>
+                  <option value="ME">ME (Mechanical Engg)</option>
+                  <option value="Civil">Civil Engineering</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Cumulative CGPA (0 - 10) *
+                </label>
+                <input
+                  type="number"
+                  id="add-student-cgpa"
+                  step="0.01"
+                  min="0"
+                  max="10"
+                  value={cgpa}
+                  onChange={e => setCgpa(e.target.value)}
+                  required
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Active Backlogs *
+                </label>
+                <input
+                  type="number"
+                  id="add-student-backlogs"
+                  min="0"
+                  max="15"
+                  value={backlogs}
+                  onChange={e => setBacklogs(Number(e.target.value))}
+                  required
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Attendance % *
+                </label>
+                <input
+                  type="number"
+                  id="add-student-attendance"
+                  min="0"
+                  max="100"
+                  value={attendance}
+                  onChange={e => setAttendance(Number(e.target.value))}
+                  required
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Batch Year
+                </label>
+                <input
+                  type="number"
+                  id="add-student-batch"
+                  value={graduationYear}
+                  onChange={e => setGraduationYear(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Placement Status
+                </label>
+                <select
+                  id="add-student-status"
+                  value={placementStatus}
+                  onChange={e => setPlacementStatus(e.target.value as PlacementStatus)}
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                >
+                  <option value="Unplaced">Unplaced</option>
+                  <option value="Placed">Placed</option>
+                  <option value="Dream Placed">Dream Placed</option>
+                  <option value="Higher Studies">Higher Studies</option>
+                  <option value="Opted Out">Opted Out</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Gender
+                </label>
+                <select
+                  id="add-student-gender"
+                  value={gender}
+                  onChange={e => setGender(e.target.value as any)}
+                  className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+
             <div>
               <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Full Name *
+                Technical Skills (Comma separated)
               </label>
               <input
                 type="text"
-                id="add-student-name"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="e.g. Sahil Kapoor"
-                required
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                id="add-student-skills"
+                value={skillsInput}
+                onChange={e => setSkillsInput(e.target.value)}
+                placeholder="e.g. C++, React, Node.js, Python"
+                className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white min-h-[40px]"
               />
             </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Enrollment Number *
-              </label>
-              <input
-                type="text"
-                id="add-student-enrollment"
-                value={enrollmentNumber}
-                onChange={e => setEnrollmentNumber(e.target.value)}
-                placeholder="e.g. 09916403222"
-                required
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Branch / Discipline *
-              </label>
-              <select
-                id="add-student-branch"
-                value={branch}
-                onChange={e => setBranch(e.target.value as Branch)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              >
-                <option value="CSE">CSE (Computer Science)</option>
-                <option value="IT">IT (Information Tech)</option>
-                <option value="ECE">ECE (Electronics & Comm)</option>
-                <option value="EE">EE (Electrical Engg)</option>
-                <option value="ME">ME (Mechanical Engg)</option>
-                <option value="Civil">Civil Engineering</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Cumulative CGPA (0 - 10) *
-              </label>
-              <input
-                type="number"
-                id="add-student-cgpa"
-                step="0.01"
-                min="0"
-                max="10"
-                value={cgpa}
-                onChange={e => setCgpa(e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Active Backlogs *
-              </label>
-              <input
-                type="number"
-                id="add-student-backlogs"
-                min="0"
-                max="15"
-                value={backlogs}
-                onChange={e => setBacklogs(Number(e.target.value))}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Attendance % *
-              </label>
-              <input
-                type="number"
-                id="add-student-attendance"
-                min="0"
-                max="100"
-                value={attendance}
-                onChange={e => setAttendance(Number(e.target.value))}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Batch Year
-              </label>
-              <input
-                type="number"
-                id="add-student-batch"
-                value={graduationYear}
-                onChange={e => setGraduationYear(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Placement Status
-              </label>
-              <select
-                id="add-student-status"
-                value={placementStatus}
-                onChange={e => setPlacementStatus(e.target.value as PlacementStatus)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              >
-                <option value="Unplaced">Unplaced</option>
-                <option value="Placed">Placed</option>
-                <option value="Dream Placed">Dream Placed</option>
-                <option value="Higher Studies">Higher Studies</option>
-                <option value="Opted Out">Opted Out</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Gender
-              </label>
-              <select
-                id="add-student-gender"
-                value={gender}
-                onChange={e => setGender(e.target.value as any)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Technical Skills (Comma separated)
-            </label>
-            <input
-              type="text"
-              id="add-student-skills"
-              value={skillsInput}
-              onChange={e => setSkillsInput(e.target.value)}
-              placeholder="e.g. C++, React, Node.js, Python"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-            />
-          </div>
           </div>
 
           {/* Fixed Footer */}
@@ -276,7 +277,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
+              className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 min-h-[44px] touch-manipulation cursor-pointer"
             >
               Cancel
             </button>
@@ -284,7 +285,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({ isOpen, onClos
               type="submit"
               id="submit-add-student-btn"
               disabled={isSubmitting}
-              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm transition-colors flex items-center gap-2 disabled:opacity-50 min-h-[44px] touch-manipulation cursor-pointer"
             >
               {isSubmitting ? (
                 <>

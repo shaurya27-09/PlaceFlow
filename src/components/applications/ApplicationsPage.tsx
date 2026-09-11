@@ -616,7 +616,7 @@ export const ApplicationsPage: React.FC = () => {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search student, enrollment, company, role..."
-              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full pl-9 pr-8 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-blue-500 min-h-[40px]"
             />
             {searchQuery && (
               <button
@@ -634,7 +634,7 @@ export const ApplicationsPage: React.FC = () => {
               id="filter-status-select"
               value={selectedStatus}
               onChange={e => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer min-h-[40px]"
             >
               <option value="ALL">All Statuses ({counts.total})</option>
               <option value="Applied">Applied ({counts.applied})</option>
@@ -652,7 +652,7 @@ export const ApplicationsPage: React.FC = () => {
               id="filter-company-select"
               value={selectedCompany}
               onChange={e => setSelectedCompany(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer min-h-[40px]"
             >
               <option value="ALL">All Companies</option>
               {availableCompanies.map(c => (
@@ -669,7 +669,7 @@ export const ApplicationsPage: React.FC = () => {
               id="filter-drive-select"
               value={selectedDriveId}
               onChange={e => setSelectedDriveId(e.target.value)}
-              className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+              className="w-full px-3 py-2.5 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer min-h-[40px]"
             >
               <option value="ALL">All Placement Drives</option>
               {(drives || []).map(d => (
@@ -748,8 +748,150 @@ export const ApplicationsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="w-full max-w-full overflow-x-auto">
-            <table className="w-full text-left text-xs min-w-[660px]">
+          <>
+            {/* Mobile Card-Based Applications List (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {filteredApplications.map(app => {
+                const nextStatus = getNextRecommendedStatus(app.status);
+                const isCandidateSelected = app.status === 'Selected' || app.status === 'Offered' || app.status === 'Offer Accepted';
+                const hasOffer = hasOfferForDrive(app.studentId, app.driveId, app.companyName);
+
+                return (
+                  <div
+                    key={`mobile-app-${app.id}`}
+                    id={`mobile-application-card-${app.id}`}
+                    className="p-4 space-y-3 bg-white dark:bg-slate-900"
+                  >
+                    {/* Top Row: Student & Status */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs shrink-0">
+                          {(app.studentName || 'S').charAt(0)}
+                        </div>
+                        <div>
+                          <div className="font-bold text-sm text-slate-900 dark:text-white">
+                            {app.studentName}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono">
+                            {app.studentEnrollment || '—'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${getStatusBadgeStyle(
+                          app.status
+                        )}`}
+                      >
+                        {app.status === 'Selected' || app.status === 'Offered' ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        ) : app.status === 'Interview' ? (
+                          <Calendar className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                        ) : app.status === 'Shortlisted' ? (
+                          <Sparkles className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                        ) : app.status === 'Rejected' ? (
+                          <XCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                        ) : (
+                          <Clock className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+                        )}
+                        <span>{app.status}</span>
+                      </span>
+                    </div>
+
+                    {/* Company & Role Details Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Company</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate block">
+                          {app.companyName || 'Company'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Role</span>
+                        <span className="font-semibold text-slate-800 dark:text-slate-200 truncate block">
+                          {app.role || 'Software Engineer'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Branch & CGPA</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-medium">
+                          {app.studentBranch} • {app.studentCgpa ? `${app.studentCgpa} CGPA` : '—'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block font-semibold">Package / Date</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                          {app.packageLPA > 0 ? `₹${app.packageLPA} LPA` : '—'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons for Mobile */}
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <button
+                        id={`mobile-view-details-btn-${app.id}`}
+                        onClick={() => setSelectedAppForDetail(app)}
+                        className="flex-1 min-h-[40px] px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-50 text-xs font-semibold flex items-center justify-center gap-1.5 touch-manipulation"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Details</span>
+                      </button>
+
+                      {nextStatus && (
+                        <button
+                          id={`mobile-quick-advance-btn-${app.id}`}
+                          onClick={() => handleRequestStatusChange(app, nextStatus)}
+                          className={`min-h-[40px] px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-1 touch-manipulation ${
+                            nextStatus === 'Selected'
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700'
+                              : nextStatus === 'Interview'
+                              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                              : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+                          }`}
+                        >
+                          <span>{nextStatus}</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </button>
+                      )}
+
+                      {isCandidateSelected && !hasOffer && (
+                        <button
+                          id={`mobile-create-offer-btn-${app.id}`}
+                          onClick={() => handleCreateOffer(app)}
+                          disabled={creatingOfferAppId === app.id}
+                          className="min-h-[40px] px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1 touch-manipulation"
+                        >
+                          {creatingOfferAppId === app.id ? (
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Award className="w-3.5 h-3.5" />
+                          )}
+                          <span>Offer</span>
+                        </button>
+                      )}
+
+                      <div className="w-full sm:w-auto">
+                        <select
+                          id={`mobile-status-select-${app.id}`}
+                          value={app.status}
+                          onChange={e => handleRequestStatusChange(app, e.target.value as ApplicationStatus)}
+                          className="w-full min-h-[40px] px-3 py-1.5 text-xs font-bold rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer touch-manipulation"
+                        >
+                          <option disabled value="">Change Status...</option>
+                          {allowedStatuses.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block w-full max-w-full overflow-x-auto">
+              <table className="w-full text-left text-xs min-w-[660px]">
               <thead className="bg-slate-50/90 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider text-[10px]">
                 <tr>
                   <th className="py-3 px-4">Student</th>
@@ -928,6 +1070,7 @@ export const ApplicationsPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+        </>
         )}
       </div>
         </div>
