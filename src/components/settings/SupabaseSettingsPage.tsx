@@ -1,68 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
-  getSupabaseCredentials,
-  saveSupabaseCredentials,
-  clearSupabaseCredentials,
   testSupabaseConnection,
-  fetchOffersFromSupabase,
-  fetchAllFromSupabase,
-  supabase
+  fetchOffersFromSupabase
 } from '../../lib/supabase';
 import {
   Database,
-  Key,
-  Globe,
   CheckCircle2,
   AlertCircle,
   ShieldCheck,
   RefreshCw,
   Award,
-  Eye,
-  EyeOff,
-  Trash2,
-  Save,
-  Check,
   Copy,
   ExternalLink,
-  Layers,
-  ArrowRight,
   Code2,
   Server
 } from 'lucide-react';
 import { Offer } from '../../types';
 
+/**
+ * Read-only Supabase status & data console.
+ *
+ * SECURITY: This page contains NO Supabase configuration editor. It does not
+ * display or accept the Supabase URL, anon/publishable key, secret key,
+ * database password, or environment variables, and it cannot change the
+ * connection. The connection is fixed at build time from environment variables
+ * (see src/lib/supabase.ts). Only read-only status checks and read-only data
+ * views against the already-configured project are exposed here.
+ */
 export const SupabaseSettingsPage: React.FC = () => {
   const {
     isSupabaseConfigured,
     supabaseConnected,
-    testConnection,
-    pullFromSupabase,
-    syncAllToSupabase,
-    isSyncing,
     addToast
   } = useApp();
 
-  const [url, setUrl] = useState('');
-  const [anonKey, setAnonKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; hint?: string } | null>(null);
   const [isLoadingOffers, setIsLoadingOffers] = useState(false);
   const [liveOffers, setLiveOffers] = useState<Offer[]>([]);
   const [offersError, setOffersError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'credentials' | 'liveOffers' | 'sqlSchema'>('credentials');
-  const [isSaved, setIsSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState<'liveOffers' | 'sqlSchema'>('liveOffers');
 
-  // Load existing credentials on mount
   useEffect(() => {
-    const creds = getSupabaseCredentials();
-    if (creds.url) setUrl(creds.url);
-    if (creds.anonKey) setAnonKey(creds.anonKey);
-
-    if (creds.url && creds.anonKey) {
+    if (isSupabaseConfigured) {
       loadLiveOffers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadLiveOffers = async () => {
@@ -79,52 +63,6 @@ export const SupabaseSettingsPage: React.FC = () => {
       setOffersError(err?.message || 'Failed to fetch offers from Supabase');
     } finally {
       setIsLoadingOffers(false);
-    }
-  };
-
-  const handleSaveCredentials = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!url.trim()) {
-      addToast('Validation Error', 'Please provide a valid Supabase Project URL.', 'error');
-      return;
-    }
-    if (!anonKey.trim()) {
-      addToast('Validation Error', 'Please provide your Supabase Anon API key.', 'error');
-      return;
-    }
-
-    // Securely persist in browser client-side storage
-    saveSupabaseCredentials(url.trim(), anonKey.trim());
-    setIsSaved(true);
-    addToast('Credentials Stored', 'Supabase credentials saved securely in browser session/local storage.', 'success');
-
-    // Run connection test immediately
-    setIsTesting(true);
-    const result = await testSupabaseConnection();
-    setIsTesting(false);
-    setTestResult(result);
-
-    if (result.success) {
-      addToast('Connected to Supabase', 'Eligibility Engine and Offers table linked live!', 'success');
-      loadLiveOffers();
-    } else {
-      addToast('Connection Check', result.message, 'warning');
-    }
-
-    setTimeout(() => setIsSaved(false), 3000);
-  };
-
-  const handleClearCredentials = () => {
-    const confirmed = window.confirm('Are you sure you want to remove stored Supabase credentials? The engine will revert to local offline cache.');
-    if (confirmed) {
-      clearSupabaseCredentials();
-      setUrl('');
-      setAnonKey('');
-      setTestResult(null);
-      setLiveOffers([]);
-      addToast('Credentials Removed', 'Switched to local offline mode.', 'info');
-      // Reload page to re-init empty client
-      setTimeout(() => window.location.reload(), 600);
     }
   };
 
@@ -256,12 +194,12 @@ CREATE POLICY "Public access to eligibility_results" ON public.eligibility_resul
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Supabase Database Settings
+              Supabase Database Status
             </h1>
             {isSupabaseConfigured ? (
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                Connected
+                {supabaseConnected ? 'Connected' : 'Configured'}
               </span>
             ) : (
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
@@ -270,7 +208,8 @@ CREATE POLICY "Public access to eligibility_results" ON public.eligibility_resul
             )}
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Securely configure your Supabase Project URL and Anon API key to link your live <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded">offers</code> table directly into the Eligibility Engine.
+            Read-only view of the live database connection and records. The Supabase connection is managed by the
+            application deployment and cannot be edited here.
           </p>
         </div>
 
@@ -286,19 +225,42 @@ CREATE POLICY "Public access to eligibility_results" ON public.eligibility_resul
         </div>
       </div>
 
+      {/* Connection status card (no URL / key / env vars shown) */}
+      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
+            <Database className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
+              {isSupabaseConfigured ? (
+                <><CheckCircle2 className="w-4 h-4 text-emerald-600" /> Live PostgreSQL connection active</>
+              ) : (
+                <><AlertCircle className="w-4 h-4 text-amber-600" /> Running on local cache</>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              Connection is fixed by the deployment. Access is enforced by authentication &amp; Row Level Security.
+            </p>
+          </div>
+        </div>
+
+        {testResult && (
+          <div
+            className={`text-[11px] font-semibold px-3 py-1.5 rounded-lg ${
+              testResult.success
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300'
+            }`}
+          >
+            {testResult.message}
+          </div>
+        )}
+      </div>
+
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800">
-        <button
-          onClick={() => setActiveTab('credentials')}
-          className={`pb-3 text-xs font-bold transition-colors flex items-center gap-2 border-b-2 ${
-            activeTab === 'credentials'
-              ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400'
-          }`}
-        >
-          <Key className="w-4 h-4" />
-          <span>API Credentials Form</span>
-        </button>
         <button
           onClick={() => {
             setActiveTab('liveOffers');
@@ -326,181 +288,7 @@ CREATE POLICY "Public access to eligibility_results" ON public.eligibility_resul
         </button>
       </div>
 
-      {/* TAB 1: Credentials Form */}
-      {activeTab === 'credentials' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <form onSubmit={handleSaveCredentials} className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
-                    <Database className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
-                      Supabase Client Credentials
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Credentials are saved safely in your browser storage and used for live queries.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Client-Side Safe</span>
-                </div>
-              </div>
-
-              {/* Supabase URL */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Supabase Project URL <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Globe className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="url"
-                    id="supabase-project-url-input"
-                    value={url}
-                    onChange={e => setUrl(e.target.value)}
-                    placeholder="https://your-project-id.supabase.co"
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:text-slate-400"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Found under Supabase Dashboard &gt; Project Settings &gt; API &gt; Project URL.
-                </p>
-              </div>
-
-              {/* Supabase Anon Key */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Supabase Anon / Public API Key <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Key className="w-4 h-4" />
-                  </div>
-                  <input
-                    type={showKey ? 'text' : 'password'}
-                    id="supabase-anon-key-input"
-                    value={anonKey}
-                    onChange={e => setAnonKey(e.target.value)}
-                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                    required
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all placeholder:text-slate-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                  >
-                    {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Found under Supabase Dashboard &gt; Project Settings &gt; API &gt; Project API Keys &gt; <code className="font-mono">anon</code> public key.
-                </p>
-              </div>
-
-              {/* Test Result Message */}
-              {testResult && (
-                <div
-                  className={`p-3.5 rounded-xl border flex items-start gap-2.5 ${
-                    testResult.success
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
-                      : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
-                  }`}
-                >
-                  {testResult.success ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <div className="font-bold text-xs">{testResult.success ? 'Connection Verified' : 'Connection Notice'}</div>
-                    <div className="text-[11px] mt-0.5">{testResult.message}</div>
-                    {testResult.hint && (
-                      <div className="text-[11px] mt-2 p-2 rounded-lg bg-black/5 dark:bg-white/5 font-normal leading-relaxed border border-black/5 dark:border-white/5">
-                        <span className="font-semibold">💡 Recommendation: </span>
-                        {testResult.hint}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Form Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <button
-                  type="submit"
-                  disabled={isTesting}
-                  id="save-supabase-creds-btn"
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2"
-                >
-                  {isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                  <span>{isSaved ? 'Saved & Connected!' : 'Save & Connect Supabase'}</span>
-                </button>
-
-                {isSupabaseConfigured && (
-                  <button
-                    type="button"
-                    onClick={handleClearCredentials}
-                    className="w-full sm:w-auto px-3.5 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Remove Stored Keys</span>
-                  </button>
-                )}
-              </div>
-            </form>
-          </div>
-
-          {/* Quick Guide Card */}
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl bg-gradient-to-br from-slate-900 to-indigo-950 text-white shadow-xl space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                  <Server className="w-4 h-4" />
-                </div>
-                <h4 className="font-bold text-xs">How Live Queries Work</h4>
-              </div>
-
-              <div className="space-y-2.5 text-[11px] text-slate-300">
-                <div className="flex items-start gap-2">
-                  <span className="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</span>
-                  <p>When configured, the Eligibility Engine executes live SQL queries directly against your <code className="text-emerald-300 font-mono">offers</code> table.</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
-                  <p>Real-time postgres change listeners immediately reflect any offer insertions, acceptances, or declines across the platform.</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="w-4 h-4 rounded-full bg-emerald-500/30 text-emerald-300 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</span>
-                  <p>Keys are stored only in your browser client state, keeping credentials private and isolated.</p>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-[10px] text-slate-400">
-                <span>Free Supabase Tier Supported</span>
-                <a
-                  href="https://supabase.com/dashboard"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
-                >
-                  Supabase Dashboard <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: Live Supabase Offers Query View */}
+      {/* TAB: Live Supabase Offers Query View (read-only) */}
       {activeTab === 'liveOffers' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
@@ -542,7 +330,7 @@ CREATE POLICY "Public access to eligibility_results" ON public.eligibility_resul
                   <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-bold">
                     <th className="py-3 px-4">Offer ID</th>
                     <th className="py-3 px-4">Candidate</th>
-                    <th className="py-3 px-4">Company & Role</th>
+                    <th className="py-3 px-4">Company &amp; Role</th>
                     <th className="py-3 px-4">Package (CTC)</th>
                     <th className="py-3 px-4">Tier</th>
                     <th className="py-3 px-4">Status</th>
@@ -606,15 +394,27 @@ CREATE POLICY "Public access to eligibility_results" ON public.eligibility_resul
               </table>
             </div>
           </div>
+
+          <div className="flex items-center justify-end">
+            <a
+              href="https://supabase.com/dashboard"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 font-semibold"
+            >
+              Manage database in Supabase Dashboard <ExternalLink className="w-3 h-3" />
+            </a>
+          </div>
         </div>
       )}
 
-      {/* TAB 3: SQL Table Script */}
+      {/* TAB: SQL Table Script */}
       {activeTab === 'sqlSchema' && (
         <div className="space-y-4">
           <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <p className="text-xs text-slate-600 dark:text-slate-400">
-              Run this SQL in your Supabase SQL Editor if you haven't initialized your <code className="font-mono text-emerald-600">offers</code> table yet:
+            <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-2">
+              <Server className="w-4 h-4 text-slate-400" />
+              Run this SQL in your Supabase SQL Editor if you haven't initialized your tables yet:
             </p>
             <button
               onClick={() => {

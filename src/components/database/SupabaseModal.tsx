@@ -1,32 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import {
-  getSupabaseCredentials,
-  saveSupabaseCredentials,
-  clearSupabaseCredentials
-} from '../../lib/supabase';
 import {
   Database,
   CheckCircle2,
   AlertCircle,
   Copy,
   Check,
-  ExternalLink,
   RefreshCw,
   UploadCloud,
   DownloadCloud,
   X,
-  Layers,
   Code2,
-  Terminal,
-  ShieldCheck,
   Server,
-  Key,
-  Globe,
-  Save,
-  Trash2,
-  Eye,
-  EyeOff
+  ShieldCheck
 } from 'lucide-react';
 
 interface SupabaseModalProps {
@@ -34,6 +20,16 @@ interface SupabaseModalProps {
   onClose: () => void;
 }
 
+/**
+ * Read-only database status & sync dialog.
+ *
+ * SECURITY: This dialog intentionally contains NO Supabase configuration editor.
+ * It never displays or accepts the Supabase URL, anon/publishable key, secret
+ * key, database password, or environment variables. The connection is fixed at
+ * build time from environment variables (see src/lib/supabase.ts) and cannot be
+ * changed from the UI. The controls here only run read-only status checks and
+ * data sync against the already-configured project.
+ */
 export const SupabaseModal: React.FC<SupabaseModalProps> = ({ isOpen, onClose }) => {
   const {
     isSupabaseConfigured,
@@ -45,47 +41,12 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({ isOpen, onClose })
     addToast
   } = useApp();
 
-  const [activeTab, setActiveTab] = useState<'credentials' | 'status' | 'sql' | 'guide'>('credentials');
-  const [urlInput, setUrlInput] = useState('');
-  const [anonKeyInput, setAnonKeyInput] = useState('');
-  const [showKey, setShowKey] = useState(false);
+  const [activeTab, setActiveTab] = useState<'status' | 'sql'>('status');
   const [copiedSql, setCopiedSql] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string; hint?: string } | null>(null);
 
-  useEffect(() => {
-    const creds = getSupabaseCredentials();
-    if (creds.url) setUrlInput(creds.url);
-    if (creds.anonKey) setAnonKeyInput(creds.anonKey);
-  }, [isOpen]);
-
   if (!isOpen) return null;
-
-  const handleSaveCredentials = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!urlInput.trim() || !anonKeyInput.trim()) {
-      addToast('Validation', 'Please provide both URL and Anon Key', 'warning');
-      return;
-    }
-    saveSupabaseCredentials(urlInput.trim(), anonKeyInput.trim());
-    addToast('Credentials Stored', 'Supabase credentials saved securely.', 'success');
-    setTesting(true);
-    const result = await testConnection();
-    setTestResult(result);
-    setTesting(false);
-    if (result.success) {
-      addToast('Connected to Supabase', 'Eligibility Engine linked live.', 'success');
-    }
-  };
-
-  const handleClearCredentials = () => {
-    clearSupabaseCredentials();
-    setUrlInput('');
-    setAnonKeyInput('');
-    setTestResult(null);
-    addToast('Credentials Removed', 'Reverted to local storage mode.', 'info');
-    setTimeout(() => window.location.reload(), 400);
-  };
 
   const sqlSchemaSnippet = `-- PlaceFlow TPC PostgreSQL Database Schema for Supabase
 -- Exact Live Schema:
@@ -238,12 +199,12 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-bold text-base text-slate-900 dark:text-white leading-tight">
-                  Supabase PostgreSQL Database
+                  Supabase Database Status
                 </h3>
                 {isSupabaseConfigured ? (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 border border-emerald-200 dark:border-emerald-800/60">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Configured
+                    Connected
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 flex items-center gap-1 border border-amber-200 dark:border-amber-800/60">
@@ -252,7 +213,7 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
                 )}
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Connect and synchronize PlaceFlow candidate records, drives, and offers with Supabase
+                View connection status and synchronize records with the configured Supabase project
               </p>
             </div>
           </div>
@@ -267,17 +228,6 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
         {/* Tabs */}
         <div className="flex items-center px-4 sm:px-5 pt-3 border-b border-slate-100 dark:border-slate-800 gap-2 overflow-x-auto shrink-0 bg-white dark:bg-slate-900">
           <button
-            onClick={() => setActiveTab('credentials')}
-            className={`pb-3 text-xs font-bold transition-colors flex items-center gap-1.5 border-b-2 whitespace-nowrap ${
-              activeTab === 'credentials'
-                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400'
-            }`}
-          >
-            <Key className="w-4 h-4" />
-            <span>Credentials Form</span>
-          </button>
-          <button
             onClick={() => setActiveTab('status')}
             className={`pb-3 text-xs font-bold transition-colors flex items-center gap-1.5 border-b-2 whitespace-nowrap ${
               activeTab === 'status'
@@ -286,7 +236,7 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
             }`}
           >
             <Server className="w-4 h-4" />
-            <span>Connection & Sync</span>
+            <span>Connection &amp; Sync</span>
           </button>
           <button
             onClick={() => setActiveTab('sql')}
@@ -299,122 +249,10 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
             <Code2 className="w-4 h-4" />
             <span>SQL Schema Script</span>
           </button>
-          <button
-            onClick={() => setActiveTab('guide')}
-            className={`pb-3 text-xs font-bold transition-colors flex items-center gap-1.5 border-b-2 whitespace-nowrap ${
-              activeTab === 'guide'
-                ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>Setup Guide</span>
-          </button>
         </div>
 
         {/* Body */}
         <div className="p-4 sm:p-6 overflow-y-auto space-y-5 text-xs flex-1 min-h-0">
-          {activeTab === 'credentials' && (
-            <form onSubmit={handleSaveCredentials} className="space-y-4">
-              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-4">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-slate-700/60">
-                  <div className="flex items-center gap-2">
-                    <Key className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="font-bold text-slate-800 dark:text-slate-200">Supabase API Keys</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400">Stored safely in browser</span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-700 dark:text-slate-300">
-                    Project URL:
-                  </label>
-                  <div className="relative">
-                    <Globe className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                    <input
-                      type="url"
-                      value={urlInput}
-                      onChange={e => setUrlInput(e.target.value)}
-                      placeholder="https://xyzcompany.supabase.co"
-                      required
-                      className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block font-bold text-slate-700 dark:text-slate-300">
-                    Anon / Public Key:
-                  </label>
-                  <div className="relative">
-                    <Key className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-                    <input
-                      type={showKey ? 'text' : 'password'}
-                      value={anonKeyInput}
-                      onChange={e => setAnonKeyInput(e.target.value)}
-                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                      required
-                      className="w-full pl-9 pr-9 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-xs text-slate-900 dark:text-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                    >
-                      {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {testResult && (
-                <div
-                  className={`p-3 rounded-xl border flex items-start gap-2 ${
-                    testResult.success
-                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300'
-                      : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'
-                  }`}
-                >
-                  {testResult.success ? (
-                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  ) : (
-                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  )}
-                  <div className="flex-1">
-                    <div className="font-bold">{testResult.success ? 'Verified' : 'Notice'}</div>
-                    <div className="text-[11px] mt-0.5">{testResult.message}</div>
-                    {testResult.hint && (
-                      <div className="text-[11px] mt-1.5 p-2 rounded-lg bg-black/5 dark:bg-white/5 font-normal leading-relaxed border border-black/5 dark:border-white/5">
-                        💡 {testResult.hint}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between gap-2 pt-2">
-                <button
-                  type="submit"
-                  disabled={testing}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-colors flex items-center gap-1.5"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{testing ? 'Connecting...' : 'Save & Link Supabase'}</span>
-                </button>
-
-                {isSupabaseConfigured && (
-                  <button
-                    type="button"
-                    onClick={handleClearCredentials}
-                    className="px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-semibold transition-colors flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Clear Keys</span>
-                  </button>
-                )}
-              </div>
-            </form>
-          )}
           {activeTab === 'status' && (
             <div className="space-y-4">
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-3">
@@ -423,7 +261,7 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
                   <div className="flex items-center gap-1.5">
                     {isSupabaseConfigured ? (
                       <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-4 h-4" /> Credentials Provided
+                        <CheckCircle2 className="w-4 h-4" /> {supabaseConnected ? 'Live Synced' : 'Configured'}
                       </span>
                     ) : (
                       <span className="font-semibold text-amber-600 dark:text-amber-400 flex items-center gap-1">
@@ -433,15 +271,16 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-200/60 dark:border-slate-700/60">
-                  <span>Environment Variables:</span>
-                  <code className="text-[11px] font-mono bg-slate-200/80 dark:bg-slate-900 px-2 py-0.5 rounded text-slate-800 dark:text-slate-200">
-                    VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
-                  </code>
+                <div className="flex items-start gap-2 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] text-slate-500 dark:text-slate-400">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                  <span>
+                    The database connection is managed centrally by the application deployment and cannot be
+                    changed from here. Access is protected by authentication and Row Level Security.
+                  </span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
+              {/* Action Buttons (read-only status + data sync only; no config editing) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   onClick={handleTest}
@@ -504,10 +343,12 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
               <div className="p-4 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-blue-900 dark:text-blue-300 space-y-1">
                 <p className="font-semibold flex items-center gap-1.5">
                   <Database className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  Offline-First & Cloud-Ready Architecture
+                  Offline-First &amp; Cloud-Ready Architecture
                 </p>
                 <p className="text-[11px] text-blue-800/80 dark:text-blue-300/80 leading-relaxed">
-                  PlaceFlow works seamlessly in local storage mode out-of-the-box. When you add your Supabase URL and Anon Key, all candidates, placement drives, applications, and offer records automatically sync to your cloud PostgreSQL database.
+                  PlaceFlow works seamlessly in local storage mode out-of-the-box. When the deployment is linked to
+                  Supabase, all candidates, placement drives, applications, and offer records sync to the cloud
+                  PostgreSQL database.
                 </p>
               </div>
             </div>
@@ -530,52 +371,6 @@ CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL TO anon, au
 
               <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-900 text-slate-200 font-mono text-[11px] max-h-72 overflow-y-auto p-4 leading-relaxed">
                 <pre>{sqlSchemaSnippet}</pre>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'guide' && (
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    1
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white">Create a Supabase Project</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Log in to <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold inline-flex items-center gap-0.5">supabase.com <ExternalLink className="w-3 h-3" /></a> and create a new project.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    2
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white">Run the Database SQL Schema</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Navigate to the <strong>SQL Editor</strong> tab in your Supabase dashboard, paste the SQL schema from the <strong>SQL Schema Script</strong> tab, and click <strong>Run</strong>.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
-                    3
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-white">Set Environment Variables</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Go to Project Settings &gt; API in Supabase. Copy your Project URL and Anon API key, and configure them in <code className="bg-slate-200 dark:bg-slate-700 px-1 py-0.5 rounded">.env</code>:
-                    </p>
-                    <div className="mt-2 p-2 rounded bg-slate-900 text-emerald-400 font-mono text-[10px]">
-                      VITE_SUPABASE_URL=https://xyzcompany.supabase.co<br />
-                      VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           )}
