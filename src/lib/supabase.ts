@@ -184,6 +184,10 @@ async function ensureJsonResponse(resp: Response, targetUrl: string): Promise<Re
       );
     }
 
+    if (!trimmed && resp.ok) {
+      return resp;
+    }
+
     try {
       JSON.parse(trimmed);
       return resp;

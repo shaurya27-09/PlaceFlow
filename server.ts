@@ -212,11 +212,18 @@ async function startServer() {
         const contentType = upstreamResp.headers.get('content-type') || '';
         res.status(upstreamResp.status);
 
+        if (upstreamResp.status === 204) {
+          return res.end();
+        }
+
         if (contentType.includes('application/json')) {
           const json = await upstreamResp.json();
           return res.json(json);
         } else {
           const text = await upstreamResp.text();
+          if (upstreamResp.ok && !text.trim()) {
+            return res.end();
+          }
           // If the upstream returned HTML error page (e.g. 502/503 from paused Supabase project),
           // format it as a valid JSON error so client JSON parsers do not throw unexpected token '<'
           return res.status(upstreamResp.status).json({

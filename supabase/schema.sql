@@ -176,6 +176,39 @@ INSERT INTO public.offer_policy (
     true
 ) ON CONFLICT (id) DO NOTHING;
 
+-- 7b. Offer Policy Configuration (offer_policy_config) Compatibility Table
+CREATE TABLE IF NOT EXISTS public.offer_policy_config (
+    id TEXT PRIMARY KEY DEFAULT 'default-policy',
+    allow_multiple_offers BOOLEAN NOT NULL DEFAULT true,
+    max_offers_allowed INTEGER NOT NULL DEFAULT 2,
+    dream_threshold_lpa NUMERIC(5, 2) NOT NULL DEFAULT 8.00,
+    super_dream_threshold_lpa NUMERIC(5, 2) NOT NULL DEFAULT 14.00,
+    min_hike_percentage_for_upgrade NUMERIC(5, 2) NOT NULL DEFAULT 50.00,
+    freeze_on_acceptance BOOLEAN NOT NULL DEFAULT true,
+    mass_recruiter_lock BOOLEAN NOT NULL DEFAULT true,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+INSERT INTO public.offer_policy_config (
+    id,
+    allow_multiple_offers,
+    max_offers_allowed,
+    dream_threshold_lpa,
+    super_dream_threshold_lpa,
+    min_hike_percentage_for_upgrade,
+    freeze_on_acceptance,
+    mass_recruiter_lock
+) VALUES (
+    'default-policy',
+    true,
+    2,
+    8.00,
+    14.00,
+    50.00,
+    true,
+    true
+) ON CONFLICT (id) DO NOTHING;
+
 -- 8. User Profiles Table (Maps Supabase Auth UUID to Student or Recruiter Company)
 CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY,
@@ -194,6 +227,7 @@ ALTER TABLE public.placement_drives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.offer_policy ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.offer_policy_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
 -- Allow public read and write access for authenticated & anon clients in PlaceFlow
@@ -214,6 +248,9 @@ CREATE POLICY "Public access to offers" ON public.offers FOR ALL USING (true) WI
 
 DROP POLICY IF EXISTS "Public access to offer_policy" ON public.offer_policy;
 CREATE POLICY "Public access to offer_policy" ON public.offer_policy FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public access to offer_policy_config" ON public.offer_policy_config;
+CREATE POLICY "Public access to offer_policy_config" ON public.offer_policy_config FOR ALL USING (true) WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Public access to profiles" ON public.profiles;
 CREATE POLICY "Public access to profiles" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
