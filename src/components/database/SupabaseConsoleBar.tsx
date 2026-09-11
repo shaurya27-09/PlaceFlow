@@ -3,7 +3,6 @@ import { useApp } from '../../context/AppContext';
 import {
   supabase,
   isSupabaseConfigured,
-  getSupabaseCredentials,
   testSupabaseConnection
 } from '../../lib/supabase';
 import {
@@ -53,17 +52,16 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [latencyMs, setLatencyMs] = useState<number | null>(48);
   const [isTesting, setIsTesting] = useState(false);
-  const creds = getSupabaseCredentials();
-  const maskedUrl = creds.url
-    ? creds.url.replace(/^https?:\/\//, '').replace(/\.supabase\.co.*$/, '.supabase.co')
-    : 'Local Storage Mode';
+  // SECURITY: never surface the Supabase URL / key in the UI. Show only whether
+  // the connection is active, sourced from the build-time configuration.
+  const connectionLabel = isSupabaseConfigured ? 'Cloud PostgreSQL' : 'Local Storage Mode';
 
   const [consoleLogs, setConsoleLogs] = useState<Array<{ timestamp: string; type: 'info' | 'success' | 'warn' | 'query'; message: string }>>([
     {
       timestamp: new Date().toLocaleTimeString(),
       type: 'info',
-      message: creds.url
-        ? `Supabase client configured with endpoint ${creds.url}`
+      message: isSupabaseConfigured
+        ? 'Supabase client configured from application environment.'
         : 'PlaceFlow operational in local reactive mode. Connect Supabase to enable cloud persistence.'
     },
     { timestamp: new Date().toLocaleTimeString(), type: 'info', message: 'Local schema [students, placement_drives, offers, companies] ready' }
@@ -198,7 +196,7 @@ export const SupabaseConsoleBar: React.FC<SupabaseConsoleBarProps> = ({
                     {supabaseConnected ? 'Live Synced' : 'Ready'}
                   </span>
                   <span className="text-[11px] font-mono text-slate-400 truncate hidden md:inline">
-                    {maskedUrl}
+                    {connectionLabel}
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">

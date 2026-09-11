@@ -27,15 +27,30 @@ import {
 // Canonical Supabase Project URL (plwslckyaxdkjultrlca)
 export const DEFAULT_SUPABASE_URL = 'https://plwslckyaxdkjultrlca.supabase.co';
 
-// Read configuration from environment variables and browser storage
+// SECURITY: Supabase configuration is read EXCLUSIVELY from build-time
+// environment variables. It is never sourced from — or overridable by —
+// localStorage, sessionStorage, cookies, URL params, user profiles, or any
+// other user-controlled state. The publishable/anon key is safe to ship to the
+// browser; database authorization is enforced by Supabase Auth + Row Level
+// Security, not by hiding this key.
 const viteSupabaseUrl = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_URL || import.meta.env?.SUPABASE_URL)) ||
   (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_URL || process.env?.SUPABASE_URL)) || DEFAULT_SUPABASE_URL;
-const viteSupabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.SUPABASE_ANON_KEY)) ||
-  (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_ANON_KEY || process.env?.SUPABASE_ANON_KEY)) || '';
+const viteSupabaseAnonKey = (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_SUPABASE_ANON_KEY || import.meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env?.SUPABASE_ANON_KEY)) ||
+  (typeof process !== 'undefined' && (process.env?.VITE_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_PUBLISHABLE_KEY || process.env?.SUPABASE_ANON_KEY)) || '';
 
 export const DEFAULT_SUPABASE_ANON_KEY = viteSupabaseAnonKey;
 
-// Required debugging log (Supabase URL only, anon key is NEVER logged)
+// One-time hardening: strip any Supabase credentials that older builds may have
+// persisted in the browser, so a previously user-injected override can never
+// take effect again. These keys are intentionally never READ anywhere.
+try {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem('placeflow_supabase_url');
+    localStorage.removeItem('placeflow_supabase_anon_key');
+  }
+} catch (_) {}
+
+// Debugging log (Supabase URL only, anon key is NEVER logged)
 console.log("Supabase URL:", viteSupabaseUrl || DEFAULT_SUPABASE_URL);
 
 /**
@@ -61,55 +76,22 @@ export function normalizeSupabaseUrl(rawUrl: string): string {
   return url;
 }
 
+/**
+ * Returns the Supabase credentials used by the app.
+ *
+ * SECURITY: values come EXCLUSIVELY from build-time environment variables.
+ * Nothing here reads localStorage, sessionStorage, cookies, URL params, or any
+ * user-controlled state, so application users cannot enter, edit, save, or
+ * override the Supabase URL / anon key. This is the single source of truth.
+ */
 export function getSupabaseCredentials(): { url: string; anonKey: string } {
-  let storedUrl = '';
-  let storedAnonKey = '';
-  try {
-    if (typeof localStorage !== 'undefined') {
-      storedUrl = (localStorage.getItem('placeflow_supabase_url') || '').trim();
-      storedAnonKey = (localStorage.getItem('placeflow_supabase_anon_key') || '').trim();
-
-      // Auto-migrate legacy typo in browser storage
-      if (storedUrl.includes('plwsickyaxdkjultrlca')) {
-        storedUrl = storedUrl.replace('plwsickyaxdkjultrlca', 'plwslckyaxdkjultrlca');
-        localStorage.setItem('placeflow_supabase_url', storedUrl);
-      }
-      if (storedAnonKey.includes('8mbX-iQ51g28y13l2q3j9k8h0g9f8e7d6c5b4a3z2y1')) {
-        localStorage.removeItem('placeflow_supabase_anon_key');
-        storedAnonKey = '';
-      }
-    }
-  } catch (_) {}
-
-  const rawUrl = (storedUrl || viteSupabaseUrl || DEFAULT_SUPABASE_URL).trim();
-  const url = normalizeSupabaseUrl(rawUrl);
-  const anonKey = (storedAnonKey || viteSupabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY).trim();
+  const url = normalizeSupabaseUrl((viteSupabaseUrl || DEFAULT_SUPABASE_URL).trim());
+  const anonKey = (viteSupabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY || '').trim();
 
   return {
     url,
     anonKey
   };
-}
-
-export function saveSupabaseCredentials(url: string, anonKey: string): void {
-  try {
-    const cleanUrl = normalizeSupabaseUrl(url);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('placeflow_supabase_url', cleanUrl);
-      localStorage.setItem('placeflow_supabase_anon_key', anonKey.trim());
-    }
-    cachedClient = null;
-  } catch (_) {}
-}
-
-export function clearSupabaseCredentials(): void {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('placeflow_supabase_url');
-      localStorage.removeItem('placeflow_supabase_anon_key');
-    }
-    cachedClient = null;
-  } catch (_) {}
 }
 
 export function checkIsSupabaseConfigured(): boolean {
@@ -1869,7 +1851,7 @@ export interface SupabaseDiagnosticInfo {
   details?: string;
   hint?: string;
   code?: string;
-  url: string;
+  url?: string;
 }
 
 export async function fetchOffersFromSupabase(): Promise<{ data?: Offer[]; error?: string; diagnostic?: SupabaseDiagnosticInfo }> {
