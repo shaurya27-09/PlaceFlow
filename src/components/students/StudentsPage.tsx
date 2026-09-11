@@ -187,9 +187,13 @@ export const StudentsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="flex flex-col min-w-0 pb-6">
+      {/* Solid, opaque dashboard panel with its own stacking context + internal scroll */}
+      <section className="relative z-0 flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm max-h-[calc(100vh-12rem)] sm:max-h-[calc(100vh-9rem)] lg:max-h-[calc(100vh-8rem)]">
+        {/* Sticky panel header */}
+        <div className="sticky top-0 z-20 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 pt-5 pb-4">
+          {/* Top Header & Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -235,6 +239,11 @@ export const StudentsPage: React.FC = () => {
           </button>
         </div>
       </div>
+      {/* End sticky panel header */}
+      </div>
+
+      {/* Scrollable body */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 bg-slate-50 dark:bg-slate-950 space-y-6">
 
       {/* Error alert if any */}
       {errorMessage && (
@@ -551,6 +560,9 @@ export const StudentsPage: React.FC = () => {
           <span>Click any row to open full academic & eligibility diagnostics</span>
         </div>
       </div>
+        </div>
+        {/* End scrollable body */}
+      </section>
 
       {/* Add Student Modal */}
       <AddStudentModal
