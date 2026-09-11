@@ -58,7 +58,7 @@ export const AiAssistantPage: React.FC = () => {
       sender: 'ai',
       text: "Hello! I am your **PlaceFlow Placement Decision Explainer AI**, connected to Gemini API and grounded strictly in the placement data stored in Supabase.\n\n🔒 **Important Governance Rule:** I **never decide eligibility** or create new outcomes. I **only explain existing placement and policy decisions** recorded in the database.\n\nTry asking:\n• *\"Why am I not eligible?\"*\n• *\"Explain why I am blocked from this company.\"*\n• *\"What criteria mismatch caused my ineligibility?\"*",
       timestamp: 'Just now',
-      provider: 'gemini-3.7-flash'
+      provider: 'gemini-3.6-flash'
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);

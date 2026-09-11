@@ -202,7 +202,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saved = localStorage.getItem('placeflow_students');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((s: any) => ({
             ...s,
             skills: s.skills || [],
@@ -224,7 +224,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saved = localStorage.getItem('placeflow_companies');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
     return initialCompanies;
@@ -235,7 +235,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saved = localStorage.getItem('placeflow_drives');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed.map((d: any) => ({
             ...d,
             eligibleBranches: d.eligibleBranches || ['CSE', 'IT']
@@ -251,7 +251,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saved = localStorage.getItem('placeflow_applications');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
     return initialApplications;
@@ -262,7 +262,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saved = localStorage.getItem('placeflow_offers');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
     return initialOffers;
@@ -621,19 +621,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           console.warn('Notice loading Supabase records:', data.error);
           setInitialDataError(data.error);
         }
-        if (data.students !== undefined) {
+        if (data.students && data.students.length > 0) {
           setStudents(data.students);
         }
-        if (data.companies !== undefined) {
+        if (data.companies && data.companies.length > 0) {
           setCompanies(data.companies);
         }
-        if (data.drives !== undefined) {
+        if (data.drives && data.drives.length > 0) {
           setDrives(data.drives);
         }
-        if (data.applications !== undefined) {
+        if (data.applications && data.applications.length > 0) {
           setApplications(data.applications);
         }
-        if (data.offers !== undefined) {
+        if (data.offers && data.offers.length > 0) {
           setOffers(data.offers);
         }
         if (data.offerPolicy) {

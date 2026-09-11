@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { generateUUID, isValidUUID } from './uuid';
+import { generateUUID, isValidUUID, toDeterministicUUID } from './uuid';
 import {
   Student,
   Branch,
@@ -700,7 +700,7 @@ export async function seedInitialDataToSupabase(
   try {
     // 1. Students: id, enrollment_no, full_name, email, branch, cgpa, backlogs, attendance, graduation_year, placement_status
     const studentRows: DbStudentRow[] = students.map(s => ({
-      id: isValidUUID(s.id) ? s.id : generateUUID(),
+      id: toDeterministicUUID(s.id),
       enrollment_no: s.enrollmentNumber || null,
       full_name: s.name || null,
       email: s.email || null,
@@ -716,7 +716,7 @@ export async function seedInitialDataToSupabase(
     const companyRows: DbCompanyRow[] = companies.map(c => {
       const contact = c.contactPerson || (c as any).contact_person || (c as any).contact_name || null;
       return {
-        id: isValidUUID(c.id) ? c.id : generateUUID(),
+        id: toDeterministicUUID(c.id),
         company_name: c.company_name || c.name || null,
         industry: c.industry || null,
         website: c.website || null,
@@ -730,8 +730,8 @@ export async function seedInitialDataToSupabase(
 
     // 3. Placement Drives: id, company_id, role, package_lpa, min_cgpa, max_backlogs, min_attendance, eligible_branches, graduation_year, offer_limit_lpa, drive_date, status
     const driveRows: DbPlacementDriveRow[] = drives.map(d => ({
-      id: isValidUUID(d.id) ? d.id : generateUUID(),
-      company_id: d.companyId,
+      id: toDeterministicUUID(d.id),
+      company_id: toDeterministicUUID(d.companyId),
       role: d.role || 'Software Engineer',
       package_lpa: d.packageLPA || 0,
       min_cgpa: d.minCgpa ?? null,
@@ -746,9 +746,9 @@ export async function seedInitialDataToSupabase(
 
     // 4. Applications: id, student_id, drive_id, status, applied_at, updated_at
     const appRows: DbApplicationRow[] = applications.map(a => ({
-      id: isValidUUID(a.id) ? a.id : generateUUID(),
-      student_id: a.studentId,
-      drive_id: a.driveId,
+      id: toDeterministicUUID(a.id),
+      student_id: toDeterministicUUID(a.studentId),
+      drive_id: toDeterministicUUID(a.driveId),
       status: a.status || 'Applied',
       applied_at: a.appliedDate ? new Date(a.appliedDate).toISOString() : new Date().toISOString(),
       updated_at: new Date().toISOString()
@@ -756,29 +756,47 @@ export async function seedInitialDataToSupabase(
 
     // 5. Offers: id, student_id, drive_id, company_id, package_lpa, status, offer_date
     const offerRows: DbOfferRow[] = offers.map(o => ({
-      id: isValidUUID(o.id) ? o.id : generateUUID(),
-      student_id: o.studentId,
-      drive_id: o.driveId,
-      company_id: o.companyId,
+      id: toDeterministicUUID(o.id),
+      student_id: toDeterministicUUID(o.studentId),
+      drive_id: toDeterministicUUID(o.driveId),
+      company_id: toDeterministicUUID(o.companyId),
       package_lpa: o.packageLPA || 0,
       status: o.status || 'Offered',
       offer_date: o.offerDate || null
     }));
 
+    const client = getSupabaseClient() || supabase;
+    const errors: string[] = [];
+
     if (studentRows.length > 0) {
-      await supabase.from('students').upsert(studentRows, { onConflict: 'id' });
+      const { error } = await client.from('students').upsert(studentRows, { onConflict: 'id' });
+      if (error) errors.push(`Students: ${error.message}`);
     }
     if (companyRows.length > 0) {
-      await supabase.from('companies').upsert(companyRows, { onConflict: 'id' });
+      const { error } = await client.from('companies').upsert(companyRows, { onConflict: 'id' });
+      if (error) errors.push(`Companies: ${error.message}`);
     }
     if (driveRows.length > 0) {
-      await supabase.from('placement_drives').upsert(driveRows, { onConflict: 'id' });
+      const { error } = await client.from('placement_drives').upsert(driveRows, { onConflict: 'id' });
+      if (error) errors.push(`Drives: ${error.message}`);
     }
     if (appRows.length > 0) {
-      await supabase.from('applications').upsert(appRows, { onConflict: 'id' });
+      const { error } = await client.from('applications').upsert(appRows, { onConflict: 'id' });
+      if (error) errors.push(`Applications: ${error.message}`);
     }
     if (offerRows.length > 0) {
-      await supabase.from('offers').upsert(offerRows, { onConflict: 'id' });
+      const { error } = await client.from('offers').upsert(offerRows, { onConflict: 'id' });
+      if (error) errors.push(`Offers: ${error.message}`);
+    }
+
+    if (errors.length > 0) {
+      const isRls = errors.some(e => e.includes('row-level security') || e.includes('42501'));
+      return {
+        success: false,
+        message: isRls
+          ? 'Database connected, but Supabase Row Level Security requires an authenticated session to write records directly.'
+          : `Sync completed with notices: ${errors.join('; ')}`
+      };
     }
 
     return {

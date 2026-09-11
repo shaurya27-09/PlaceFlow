@@ -607,13 +607,14 @@ ${JSON.stringify(relevantContext, null, 2)}`;
     console.log("Gemini request starting");
 
     const CANDIDATE_MODELS = [
+      'gemini-3.6-flash',
       'gemini-3.8-flash',
       'gemini-flash-latest',
       'gemini-3.1-flash-lite'
     ];
 
     let responseText = '';
-    let usedProvider = 'gemini-3.8-flash';
+    let usedProvider = 'gemini-3.6-flash';
 
     for (const modelName of CANDIDATE_MODELS) {
       try {
