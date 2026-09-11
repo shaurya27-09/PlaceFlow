@@ -139,9 +139,21 @@ export const CompaniesPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="flex flex-col min-w-0 pb-6">
+      {/*
+        Dashboard panel — a single, fully opaque container that owns its own
+        stacking context (`relative z-0`). Because it has an explicit solid
+        background, none of the underlying app chrome (header account controls,
+        Supabase status tags, sidebar) can bleed through it. The panel is a
+        flex column bounded to the viewport so its card list scrolls INTERNALLY
+        instead of sliding underneath the sticky top navigation.
+      */}
+      <section className="relative z-0 flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm max-h-[calc(100vh-12rem)] sm:max-h-[calc(100vh-9rem)] lg:max-h-[calc(100vh-8rem)]">
+        {/* Sticky panel header: title, status tags, actions and filters stay
+            pinned at the top of the panel above the scrolling card list. */}
+        <div className="sticky top-0 z-20 shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 pt-5 pb-4 space-y-4">
+          {/* Title + status tags + actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -213,37 +225,47 @@ export const CompaniesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search & Tier Filter */}
-      <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-            <Search className="w-4 h-4" />
-          </div>
-          <input
-            type="text"
-            id="company-search-input"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search company name, industry, contact, email..."
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+          {/* Search & Tier Filter */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <Search className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                id="company-search-input"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                placeholder="Search company name, industry, contact, email..."
+                className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
 
-        <div className="sm:w-60">
-          <select
-            id="company-tier-filter"
-            value={selectedTier}
-            onChange={e => setSelectedTier(e.target.value)}
-            className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="ALL">All Tiers</option>
-            <option value="Super Dream">Super Dream (&gt;= ₹12 LPA)</option>
-            <option value="Dream">Dream (₹8 - ₹12 LPA)</option>
-            <option value="Core">Core (₹5 - ₹8 LPA)</option>
-            <option value="Mass">Mass Recruiter (&lt; ₹5 LPA)</option>
-          </select>
+            <div className="sm:w-60">
+              <select
+                id="company-tier-filter"
+                value={selectedTier}
+                onChange={e => setSelectedTier(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="ALL">All Tiers</option>
+                <option value="Super Dream">Super Dream (&gt;= ₹12 LPA)</option>
+                <option value="Dream">Dream (₹8 - ₹12 LPA)</option>
+                <option value="Core">Core (₹5 - ₹8 LPA)</option>
+                <option value="Mass">Mass Recruiter (&lt; ₹5 LPA)</option>
+              </select>
+            </div>
+          </div>
         </div>
-      </div>
+        {/* End sticky panel header */}
+
+        {/*
+          Scrollable body — the card grid / table lives here and scrolls
+          within the panel. `min-h-0` lets this flex child actually shrink so
+          `overflow-y-auto` engages; a distinct canvas shade lets the opaque
+          white / slate-900 cards stand out from the container surface.
+        */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-5 bg-slate-50 dark:bg-slate-950 space-y-6">
 
       {/* Loading State */}
       {isLoading && companies.length === 0 ? (
@@ -491,6 +513,9 @@ export const CompaniesPage: React.FC = () => {
           </div>
         </div>
       )}
+        </div>
+        {/* End scrollable body */}
+      </section>
 
       <AddCompanyModal
         isOpen={isAddModalOpen}

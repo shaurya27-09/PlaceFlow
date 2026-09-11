@@ -106,7 +106,7 @@ const AppContent: React.FC = () => {
 
   // Authenticated Platform Dashboard Shell
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-50/70 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white transition-colors duration-200">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-slate-100 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 flex flex-col selection:bg-blue-500 selection:text-white transition-colors duration-200">
       <Header
         onOpenCreateDrive={handleOpenCreateDrive}
         onOpenMobileDrawer={() => setIsMobileDrawerOpen(true)}
